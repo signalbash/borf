@@ -1,13 +1,38 @@
 # get_orfs.py
-from Bio import SeqIO
+
 import numpy as np
 import re as re
 import pandas as pd
 import skbio as skbio
 import itertools as itertools
+from Bio import SeqIO
 
 def get_orfs(fasta_file, top_strand = True, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
+    """
+    Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
+    Parameters
+    ----------
+    fasta_file : str
+        path to the fasta file to predict orfs for
+    top_strand : bool
+        Only provide predictions for the top strand? (i.e. do not reverse compliment).
+        Set to False if you want predicitions for both strands
+    min_orf_length : int
+        minimum length for a predicted ORF to be reported
+    longest_only : bool
+        Only return the longest ORF for each sequence?
+        Set to False to return all ORFs longer than min_orf_length
+    min_upstream_length : int
+        Minimum length of AA sequence upstream of a canonical start site (e.g. MET) to be used when reporting incomplete_5prime ORFs.
+        Upstream sequence starts from the start of the translated sequence, and contains no STOP codons.
+
+    Returns
+    -------
+    orf_df : DataFrame
+        DataFrame containing predicted ORF data and sequences
+
+    """
     all_sequences = []
 
     # read in fasta file
@@ -256,6 +281,29 @@ def get_orfs(fasta_file, top_strand = True, min_orf_length = 100, longest_only =
 
 # return location of the next stop in a sequence, or return the length if no stop found
 def find_next_stop(aa_seq, start_loc):
+    """
+    Find location of the next stop codon (*) after the start location.
+    Return string length if no stop codon is found.
+
+    Parameters
+    ----------
+    aa_seq : str
+        amino acid sequence
+    start_loc : int
+        start location
+
+    Returns
+    -------
+    end_loc : int
+        location of the next stop codon, or length of string if none is found
+
+    Examples
+    --------
+
+    find_next_stop("AAAMBBB*CCC*", 4)
+    find_next_stop("AAAMBBBCCC", 4)
+
+    """
     stop_codon = np.char.find(aa_seq[start_loc:], '*')
 
     if stop_codon == -1:
@@ -265,6 +313,29 @@ def find_next_stop(aa_seq, start_loc):
     return end_loc
 
 def find_max_orf_index(start_locs, end_locs):
+    """
+    Given sets of start and end locations, return the set with the largest difference
+
+    Parameters
+    ----------
+    start_locs : np.array
+        start locations
+    end_locs : np.array
+        end locations
+
+    Returns
+    -------
+    start_loc : int
+        start location
+    end_loc : int
+        end location
+
+    Examples
+    --------
+
+    find_max_orf_index(start_locs = [0,100], end_locs = [1000, 200])
+
+    """
     orf_lengths = np.array(end_locs) - np.array(start_locs)
     if orf_lengths.size > 1:
         max_index = np.where(orf_lengths == np.amax(orf_lengths))[0]
@@ -272,7 +343,29 @@ def find_max_orf_index(start_locs, end_locs):
     else:
         return np.array(start_locs)[0], np.array(end_locs)[0]
 
+
 def replace_last_stop(orf_seq):
+
+    """
+    replace * with nothing as the final character in in string
+
+    Parameters
+    ----------
+    orf_seq : str
+        orf_sequence
+
+    Returns
+    -------
+    orf_seq : str
+        orf_sequence
+
+    Examples
+    --------
+
+    replace_last_stop("META*")
+    replace_last_stop("METAL")
+
+    """
 
     if orf_seq[-1] == '*':
         replaced_orf_seq = orf_seq[0:-1]
@@ -280,9 +373,34 @@ def replace_last_stop(orf_seq):
     else:
         return orf_seq
 
-
-
 def orf_start_stop_from_aa(aa_seq, max_only = True):
+    """
+    Find locations of the start (M) and stop (*) codons that produce the longest ORF
+
+    Parameters
+    ----------
+    aa_seq : str
+        amino acid sequence
+    max_only : bool
+        Only return that start and stop locations of the longest ORF
+
+    Returns
+    -------
+    start_loc : int
+        start location
+    end_loc : int
+        end location
+
+    Examples
+    --------
+
+    orf_start_stop_from_aa("META*")
+    orf_start_stop_from_aa("META*MEATBORF*")
+    orf_start_stop_from_aa("META*MEATBORF")
+    orf_start_stop_from_aa("MEATBORF")
+
+    """
+
     # find all M
     if aa_seq.count("M") > 0:
         start_locs = []
@@ -291,7 +409,7 @@ def orf_start_stop_from_aa(aa_seq, max_only = True):
         M_locations = [m.span()[0] for m in re.finditer('M', aa_seq)]
         last_end = -1
         for m in M_locations:
-            if m > last_end:
+            if m > last_end-1:
                 stop_location = find_next_stop(aa_seq, m)
                 start_locs.append(m)
                 end_locs.append(stop_location)
@@ -310,6 +428,24 @@ def orf_start_stop_from_aa(aa_seq, max_only = True):
     return max_start,max_end
 
 def add_orf_classification(orf_df):
+    """
+    Generate ORF type classification from an orf_df.
+    complete: Complete CDS - contains start codon and stop codon
+    incomplete_5prime: Incomplete CDS - has stop codon, but start of sequence indicates that an upstream start codon may be missing.
+    incomplete_3prime: Incomplete CDS - has start codon, but no stop codon.
+    incomplete: Incomplete CDS - Both start codon and stop codon not found.
+
+    Parameters
+    ----------
+    orf_df : DataFrame
+        orf_df DataFrame
+
+    Returns
+    -------
+    orf_class : np.array
+        numpy array of orf classifications
+
+    """
     orf_class = np.empty(len(orf_df['first_MET']), dtype='object')
 
     orf_class[np.logical_and(orf_df['first_MET'] == "M", orf_df['final_stop'] == "STOP")] = 'complete' # complete CDS
@@ -320,9 +456,32 @@ def add_orf_classification(orf_df):
     return orf_class
 
 def write_orf_fasta(orf_df, file_out):
+    """
+    Write ORF sequences to a fasta file.
+
+    Parameters
+    ----------
+    orf_df : DataFrame
+        orf_df DataFrame
+    file_out : str
+        path to file to write fasta sequences
+
+    """
     orf_df.to_csv(file_out, index=False, sep='\n', header=False,columns = ['fasta_id','orf_sequence'])
 
 def write_orf_data(orf_df, file_out):
+    """
+    Write ORF sequence metadata to txt file.
+
+    Parameters
+    ----------
+    orf_df : DataFrame
+        orf_df DataFrame
+    file_out : str
+        path to file to write txt file
+
+    """
+
     orf_df = orf_df[['fasta_id', 'id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length', 'start_site', 'stop_site', 'orf_length', 'first_MET', 'final_stop', 'orf_class']]
 
     orf_df.columns = ['orf_id', 'transcript_id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length_nt', 'start_site_aa', 'stop_site_aa', 'orf_length_aa', 'first_aa_MET', 'final_aa_stop', 'orf_class']
