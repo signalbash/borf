@@ -273,9 +273,7 @@ def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_onl
 
 
     orf_df['orf_class'] = add_orf_classification(orf_df)
-    orf_df['fasta_id'] = ('>' + orf_df.id + '.orf' +  orf_df.isoform_number.map(str) +
-    ' ' +  orf_df.orf_class + ':' + orf_df.start_site_nt.map(str) +
-    '-' + orf_df.stop_site_nt.map(str) + ' strand:' +  orf_df.strand.map(str))
+    orf_df['fasta_id'] = ('>' + orf_df.id + '.orf' +  orf_df.isoform_number.map(str) + ' ' +  orf_df.orf_class + ':' + orf_df.start_site_nt.map(str) + '-' + orf_df.stop_site_nt.map(str) + ' strand:' +  orf_df.strand.map(str))
 
     return orf_df
 
