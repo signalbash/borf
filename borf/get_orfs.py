@@ -7,7 +7,7 @@ import skbio as skbio
 import itertools as itertools
 from Bio import SeqIO
 
-def get_orfs(fasta_file, top_strand = True, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
+def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
@@ -373,7 +373,7 @@ def replace_last_stop(orf_seq):
     else:
         return orf_seq
 
-def orf_start_stop_from_aa(aa_seq, max_only = True):
+def orf_start_stop_from_aa(aa_seq, *, max_only = True):
     """
     Find locations of the start (M) and stop (*) codons that produce the longest ORF
 
