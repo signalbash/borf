@@ -181,7 +181,6 @@ def check_first_aa(orf_sequence, start_codon='M'):
 
 def find_all_orfs(aa_frames, min_orf_length):
     matched_index = []
-    isoform_number = []
     start_sites = []
     stop_sites = []
     orf_sequence = []
