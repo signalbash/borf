@@ -6,7 +6,7 @@ import pandas as pd
 import skbio as skbio
 import itertools as itertools
 from Bio import SeqIO
-
+import os
 
 def batch_iterator(iterator, batch_size):
     """Returns lists of length batch_size.
@@ -35,7 +35,7 @@ def batch_iterator(iterator, batch_size):
         if batch:
             yield batch
 
-import os
+
 def appendDFToCSV_void(df, csvFilePath, sep=","):
     if not os.path.isfile(csvFilePath):
         df.to_csv(csvFilePath, mode='a', index=False, sep=sep)
@@ -45,24 +45,16 @@ def appendDFToCSV_void(df, csvFilePath, sep=","):
         raise Exception("Columns and column order of dataframe and csv file do not match!!")
     else:
         df.to_csv(csvFilePath, mode='a', index=False, sep=sep, header=False)
-import datetime
-record_iter = SeqIO.parse(open('/Users/143470/Projects/C3/get_orfs/test_10000.fa'), 'fasta')
 
-
-for i, batch in enumerate(batch_iterator(record_iter, 1000)):
-    all_sequences = []
-    for record in batch:
-        all_sequences.append(record)
-    print(i)
-    print(len(all_sequences))
-    orfs = get_orfs(all_sequences)
-    appendDFToCSV_void(orfs, "output.txt")
-    print(datetime.datetime.now().time())
-
-
-%timeit orfs = get_orfs(all_sequences)
-
-print(datetime.datetime.now().time())
+# for i, batch in enumerate(batch_iterator(record_iter, 1000)):
+#     all_sequences = []
+#     for record in batch:
+#         all_sequences.append(record)
+#     print(i)
+#     print(len(all_sequences))
+#     orfs = get_orfs(all_sequences)
+#     appendDFToCSV_void(orfs, "output.txt")
+#     print(datetime.datetime.now().time())
 
 def read_fasta(fasta_file):
     all_sequences = []
@@ -73,8 +65,7 @@ def read_fasta(fasta_file):
 
     return all_sequences
 
-
-def translate_all_frames(sequences, both_strands):
+def translate_all_frames(sequences, both_strands=False):
     # create all frame translations of nt sequence
     aa_seq_by_frame = []
     frame = []
@@ -102,7 +93,7 @@ def translate_all_frames(sequences, both_strands):
     if both_strands == False:
         strand = np.array([s for s in '+' for i in range(len(aa_seq_by_frame))])
     else:
-        strand = np.tile(np.array(['+','-']) ,len(sequences))
+        strand = np.tile(np.array(['+','-']) ,len(sequences)*3)
 
     seq_length = np.array([len(o) for o in aa_seq_by_frame])
 
@@ -197,7 +188,6 @@ def find_all_orfs(aa_frames, min_orf_length):
         max_end = np.array(end_locs)[above_min_length]
         rep_index = np.repeat(i, len(orf_lengths))
 
-        isoform_number.append(np.array(range(1, len(orf_lengths)+1)))
         start_sites.append(max_start)
         stop_sites.append(max_end)
         matched_index.append(rep_index)
@@ -211,7 +201,6 @@ def find_all_orfs(aa_frames, min_orf_length):
     start_sites = np.hstack(start_sites)
     stop_sites = np.hstack(stop_sites)
     matched_index = np.hstack(matched_index)
-    isoform_number = np.hstack(isoform_number)
     orf_sequence = np.hstack(orf_sequence)
 
     # check if the last AA is a stop (*) and trim it if neccessary
@@ -225,9 +214,9 @@ def find_all_orfs(aa_frames, min_orf_length):
     stop_sites = np.array(stop_sites)
     last_aa_is_stop = np.array(last_aa_is_stop)
 
-    return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index,isoform_number
+    return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index
 
-def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_orfs = False, min_upstream_length = 50):
+def get_orfs(fasta_file, * ,both_strands = False, min_orf_length = 100, all_orfs = False, min_upstream_length = 50):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
@@ -252,10 +241,9 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_o
         DataFrame containing predicted ORF data and sequences
 
     """
-    #all_sequences = read_fasta(fasta_file)
+    all_sequences = read_fasta(fasta_file)
     # create all frame translations of nt sequence
     ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
-
 
     if all_orfs == False:
 
@@ -314,7 +302,7 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_o
         sequence_df['seq_index'] = range(len(aa_frames)) # index so we can match back data later
 
         # find all ORFs longer than min_orf_length
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index,isoform_number = find_all_orfs(aa_frames, min_orf_length=min_orf_length)
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_frames, min_orf_length=min_orf_length)
 
         # check for upstream ORF?
         # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
@@ -323,7 +311,7 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_o
 
         # filter data by minimum orf length
         keep = orf_length > min_orf_length
-        start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index,isoform_number=filter_objects(keep, start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index,isoform_number)
+        start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index=filter_objects(keep, start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index)
 
         # make DataFrame of ORF data
         orf_df = pd.DataFrame(index = range(len(orf_sequence)))
@@ -332,10 +320,11 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_o
         orf_df['start_site'] = start_sites
         orf_df['stop_site'] = stop_sites
         orf_df['orf_length'] = orf_length
-        orf_df['isoform_number'] = isoform_number.astype(int)
         # combine with sequence data from above
         orf_df = pd.merge(sequence_df,orf_df,  on='seq_index', how='right')
         orf_df.drop('seq_index', axis=1,inplace=True)
+
+
 
         # convert aa indices to nt-based indices
         orf_df['start_site_nt'],orf_df['stop_site_nt'],orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'],last_aa_is_stop)
@@ -343,7 +332,7 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_o
         # check first and last AA
         orf_df['first_MET'] = check_first_aa(orf_df['orf_sequence'])
         orf_df['final_stop'] = np.where(last_aa_is_stop, 'STOP','ALT')
-
+        orf_df['isoform_number'] = add_number_to_list(orf_df.id)
 
     # add ORF classification
     orf_df['orf_class'] = add_orf_classification(orf_df)
@@ -546,6 +535,7 @@ def write_orf_fasta(orf_df, file_out):
     orf_df.to_csv(file_out, index=False, sep='\n', header=False,columns = ['fasta_id','orf_sequence'])
 
 import sys
+
 def check_things(i):
 
     if i > 10:
@@ -557,7 +547,7 @@ def check_things(i):
         sys.exit("Quitting borf")
 
 
-check_things(100)
+#check_things(100)
 
 def write_orf_data(orf_df, file_out):
     """
@@ -577,3 +567,19 @@ def write_orf_data(orf_df, file_out):
     orf_df.columns = ['orf_id', 'transcript_id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length_nt', 'start_site_aa', 'stop_site_aa', 'orf_length_aa', 'first_aa_MET', 'final_aa_stop', 'orf_class']
 
     orf_df.to_csv(file_out, index=False, sep='\t')
+
+def add_number_to_list(input_list):
+    dups = {}
+    occurrence = []
+    for i, val in enumerate(input_list):
+        if val not in dups:
+            # Store index of first occurrence and occurrence value
+            dups[val] = [i, 1]
+
+        # Increment occurrence value,
+        else:
+            dups[val][1] += 1
+            # Use stored occurrence value
+        #mylist[i] += str(dups[val][1])
+        occurrence.append(dups[val][1])
+    return occurrence
