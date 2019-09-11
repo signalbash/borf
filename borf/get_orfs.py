@@ -228,7 +228,7 @@ def find_all_orfs(aa_frames, min_orf_length):
 
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index,isoform_number
 
-def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
+def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, all_orfs = False, min_upstream_length = 50):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
@@ -240,9 +240,9 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, longe
         Provide predictions for both strands? (i.e. dreverse compliment).
     min_orf_length : int
         minimum length for a predicted ORF to be reported
-    longest_only : bool
-        Only return the longest ORF for each sequence?
-        Set to False to return all ORFs longer than min_orf_length
+    all_orfs : bool
+        Return all ORFs longer than min_orf_length?
+        Set to False (default) to only return the longest ORF for each sequence.
     min_upstream_length : int
         Minimum length of AA sequence upstream of a canonical start site (e.g. MET) to be used when reporting incomplete_5prime ORFs.
         Upstream sequence starts from the start of the translated sequence, and contains no STOP codons.
@@ -258,7 +258,7 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, longe
     ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
 
 
-    if longest_only == True:
+    if all_orfs == False:
 
         # find the longest ORF in each frame
         orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
@@ -299,7 +299,7 @@ def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, longe
         # filter by orf with the max length for each sequence
         idx = orf_df.groupby(['id'])['orf_length'].transform(max) == orf_df['orf_length']
         orf_df = orf_df[idx]
-        orf_df['isoform_number'] = int(1) # isoform_number so output format is the same as if longest_only == False
+        orf_df['isoform_number'] = int(1) # isoform_number so output format is the same as if all_orfs == True
 
     # if finding all orf > cutoff
     else:
