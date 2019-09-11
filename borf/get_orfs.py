@@ -74,7 +74,7 @@ def read_fasta(fasta_file):
     return all_sequences
 
 
-def translate_all_frames(sequences, top_strand):
+def translate_all_frames(sequences, both_strands):
     # create all frame translations of nt sequence
     aa_seq_by_frame = []
     frame = []
@@ -88,7 +88,7 @@ def translate_all_frames(sequences, top_strand):
             seq_length_nt.append(len(str(seq_string.seq)))
             ids.append(seq_string.id)
 
-            if top_strand == False:
+            if both_strands == True:
                 # translate reverse compliment
                 aa_seq_by_frame.append(str(skbio.DNA(str(seq_string.seq[reading_frame:])).complement(reverse=True).translate()))
                 frame.append(reading_frame)
@@ -99,7 +99,7 @@ def translate_all_frames(sequences, top_strand):
     seq_length_nt = np.array(seq_length_nt)
     aa_seq_by_frame = np.array(aa_seq_by_frame)
     frame = np.array(frame) + 1
-    if top_strand == True:
+    if both_strands == False:
         strand = np.array([s for s in '+' for i in range(len(aa_seq_by_frame))])
     else:
         strand = np.tile(np.array(['+','-']) ,len(sequences))
@@ -228,7 +228,7 @@ def find_all_orfs(aa_frames, min_orf_length):
 
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index,isoform_number
 
-def get_orfs(all_sequences, * ,top_strand = True, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
+def get_orfs(all_sequences, * ,both_strands = False, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
@@ -236,9 +236,8 @@ def get_orfs(all_sequences, * ,top_strand = True, min_orf_length = 100, longest_
     ----------
     fasta_file : str
         path to the fasta file to predict orfs for
-    top_strand : bool
-        Only provide predictions for the top strand? (i.e. do not reverse compliment).
-        Set to False if you want predicitions for both strands
+    both_strands : bool
+        Provide predictions for both strands? (i.e. dreverse compliment).
     min_orf_length : int
         minimum length for a predicted ORF to be reported
     longest_only : bool
@@ -256,7 +255,7 @@ def get_orfs(all_sequences, * ,top_strand = True, min_orf_length = 100, longest_
     """
     #all_sequences = read_fasta(fasta_file)
     # create all frame translations of nt sequence
-    ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, top_strand=top_strand)
+    ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
 
 
     if longest_only == True:
