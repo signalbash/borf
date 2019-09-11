@@ -7,6 +7,63 @@ import skbio as skbio
 import itertools as itertools
 from Bio import SeqIO
 
+
+def batch_iterator(iterator, batch_size):
+    """Returns lists of length batch_size.
+
+    This can be used on any iterator, for example to batch up
+    SeqRecord objects from Bio.SeqIO.parse(...), or to batch
+    Alignment objects from Bio.AlignIO.parse(...), or simply
+    lines from a file handle.
+
+    This is a generator function, and it returns lists of the
+    entries from the supplied iterator.  Each list will have
+    batch_size entries, although the final list may be shorter.
+    """
+    entry = True  # Make sure we loop once
+    while entry:
+        batch = []
+        while len(batch) < batch_size:
+            try:
+                entry = next(iterator)
+            except StopIteration:
+                entry = None
+            if entry is None:
+                # End of file
+                break
+            batch.append(entry)
+        if batch:
+            yield batch
+
+import os
+def appendDFToCSV_void(df, csvFilePath, sep=","):
+    if not os.path.isfile(csvFilePath):
+        df.to_csv(csvFilePath, mode='a', index=False, sep=sep)
+    elif len(df.columns) != len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns):
+        raise Exception("Columns do not match!! Dataframe has " + str(len(df.columns)) + " columns. CSV file has " + str(len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns)) + " columns.")
+    elif not (df.columns == pd.read_csv(csvFilePath, nrows=1, sep=sep).columns).all():
+        raise Exception("Columns and column order of dataframe and csv file do not match!!")
+    else:
+        df.to_csv(csvFilePath, mode='a', index=False, sep=sep, header=False)
+import datetime
+record_iter = SeqIO.parse(open('/Users/143470/Projects/C3/get_orfs/test_10000.fa'), 'fasta')
+
+
+for i, batch in enumerate(batch_iterator(record_iter, 1000)):
+    all_sequences = []
+    for record in batch:
+        all_sequences.append(record)
+    print(i)
+    print(len(all_sequences))
+    orfs = get_orfs(all_sequences)
+    appendDFToCSV_void(orfs, "output.txt")
+    print(datetime.datetime.now().time())
+
+
+%timeit orfs = get_orfs(all_sequences)
+
+print(datetime.datetime.now().time())
+
 def read_fasta(fasta_file):
     all_sequences = []
 
@@ -91,7 +148,7 @@ def find_longest_orfs(aa_frames):
 
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop
 
-def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length):
+def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, min_upstream_length = 50):
     first_stop = np.char.find(np.array(aa_frames), "*")
     add_upstream = np.logical_and(np.logical_or(first_stop == -1, first_stop == (stop_sites-1)), start_sites > min_upstream_length)
 
@@ -106,7 +163,7 @@ def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length):
 
     return orf_sequence, start_sites, orf_length
 
-def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame):
+def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop):
     start_site_nt = (start_sites*3) - 3 + frame
     # only give a stop_site_nt location if the last AA is * //// NOT ANYMORE
     # using NAN values gives issues when trying to convert to int
@@ -171,7 +228,7 @@ def find_all_orfs(aa_frames, min_orf_length):
 
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index,isoform_number
 
-def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
+def get_orfs(all_sequences, * ,top_strand = True, min_orf_length = 100, longest_only = True, min_upstream_length = 50):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
@@ -197,7 +254,7 @@ def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_onl
         DataFrame containing predicted ORF data and sequences
 
     """
-    all_sequences = read_fasta(fasta_file)
+    #all_sequences = read_fasta(fasta_file)
     # create all frame translations of nt sequence
     ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, top_strand=top_strand)
 
@@ -209,14 +266,14 @@ def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_onl
 
         # check for upstream ORF?
         # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
-        orf_sequence, start_sites, orf_length = add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length)
+        orf_sequence, start_sites, orf_length = add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length,min_upstream_length =min_upstream_length)
 
         # filter data by minimum orf length
         keep = orf_length > min_orf_length
         aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length = filter_objects(keep,  aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length)
 
         # convert aa indices to nt-based indices
-        start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame)
+        start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
 
         # check first and last AA
         first_MET = check_first_aa(orf_sequence)
@@ -264,7 +321,7 @@ def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_onl
         # check for upstream ORF?
         # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
         full_seq_matched = np.array(sequence_df['aa_sequence'][matched_index], dtype='str')
-        orf_sequence, start_sites, orf_length = add_upstream_aas(full_seq_matched, stop_sites,start_sites,orf_sequence,orf_length)
+        orf_sequence, start_sites, orf_length = add_upstream_aas(full_seq_matched, stop_sites,start_sites,orf_sequence,orf_length,min_upstream_length = min_upstream_length)
 
         # filter data by minimum orf length
         keep = orf_length > min_orf_length
@@ -283,7 +340,7 @@ def get_orfs(fasta_file, * ,top_strand = True, min_orf_length = 100, longest_onl
         orf_df.drop('seq_index', axis=1,inplace=True)
 
         # convert aa indices to nt-based indices
-        orf_df['start_site_nt'],orf_df['stop_site_nt'],orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'])
+        orf_df['start_site_nt'],orf_df['stop_site_nt'],orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'],last_aa_is_stop)
 
         # check first and last AA
         orf_df['first_MET'] = check_first_aa(orf_df['orf_sequence'])
@@ -485,7 +542,24 @@ def write_orf_fasta(orf_df, file_out):
         path to file to write fasta sequences
 
     """
+    # check if file exists
+    #
+
     orf_df.to_csv(file_out, index=False, sep='\n', header=False,columns = ['fasta_id','orf_sequence'])
+
+import sys
+def check_things(i):
+
+    if i > 10:
+        checked = input('Overwrite file? y/n')
+    if checked == 'y':
+        print('overwriting...')
+    else:
+        print('Please supply an alternative output file name and run again.')
+        sys.exit("Quitting borf")
+
+
+check_things(100)
 
 def write_orf_data(orf_df, file_out):
     """
