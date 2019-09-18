@@ -81,11 +81,10 @@ def translate_all_frames(sequences, both_strands=False):
 
             if both_strands == True:
                 # translate reverse compliment
-                aa_seq_by_frame.append(str(skbio.DNA(str(seq_string.seq[reading_frame:])).complement(reverse=True).translate()))
+                aa_seq_by_frame.append(str(skbio.DNA(str(skbio.DNA(str(seq_string.seq)).complement(reverse=True))[reading_frame:]).translate()))
                 frame.append(reading_frame)
                 seq_length_nt.append(len(str(seq_string.seq)))
                 ids.append(seq_string.id)
-
 
     seq_length_nt = np.array(seq_length_nt)
     aa_seq_by_frame = np.array(aa_seq_by_frame)
