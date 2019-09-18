@@ -218,15 +218,20 @@ def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, 
     add_upstream = np.logical_and(np.logical_or(first_stop == -1, first_stop == (stop_sites-1)), start_sites > min_upstream_length)
 
     if np.any(add_upstream):
+        orf_sequence_withup = orf_sequence.copy()
+        orf_length_withup = orf_length.copy()
+        start_sites_withup = start_sites.copy()
 
         orf_with_upstream = [o[0:s] for o,s in zip(aa_frames[add_upstream], stop_sites[add_upstream])]
         # check if the last AA is a stop (*) and trim it if neccessary
         orf_with_upstream = [replace_last_stop(o) for o in orf_with_upstream]
-        orf_sequence[add_upstream] = orf_with_upstream
-        start_sites[add_upstream] = 1 #set to 1 for upstream ORFs
-        orf_length[add_upstream] = np.array([len(o) for o in orf_sequence[add_upstream]])
+        orf_sequence_withup[add_upstream] = orf_with_upstream
+        start_sites_withup[add_upstream] = 1 #set to 1 for upstream ORFs
+        orf_length_withup[add_upstream] = np.array([len(o) for o in orf_sequence_withup[add_upstream]])
 
-    return orf_sequence, start_sites, orf_length
+        return orf_sequence_withup, start_sites_withup, orf_length_withup
+    else:
+        return orf_sequence, start_sites, orf_length
 
 def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop):
     """
