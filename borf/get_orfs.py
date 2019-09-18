@@ -57,6 +57,19 @@ def appendDFToCSV_void(df, csvFilePath, sep=","):
 #     print(datetime.datetime.now().time())
 
 def read_fasta(fasta_file):
+    """
+    read in a fasta file
+
+    Parameters
+    ----------
+    fasta_file : str
+        path to fasta file
+
+    Returns
+    -------
+    sequences :
+        SeqIO records of each sequence
+    """
     all_sequences = []
 
     # read in fasta file
@@ -66,6 +79,25 @@ def read_fasta(fasta_file):
     return all_sequences
 
 def translate_all_frames(sequences, both_strands=False):
+
+    """
+    translate nt sequences into all 3 frames
+
+    Parameters
+    ----------
+    sequences : list
+        list of nucleotide sequences
+    both_strands : bool
+        translate both strands?
+
+    Returns
+        return ids, aa_seq_by_frame, frame, strand, seq_length_nt, seq_length
+
+    -------
+    objects :
+        filtered objects
+    """
+
     # create all frame translations of nt sequence
     aa_seq_by_frame = []
     frame = []
@@ -100,6 +132,22 @@ def translate_all_frames(sequences, both_strands=False):
     return ids, aa_seq_by_frame, frame, strand, seq_length_nt, seq_length
 
 def filter_objects(filter, *objects):
+
+    """
+    filter multiple objects
+
+    Parameters
+    ----------
+    filter : list
+        boolean list
+    objects :
+        objects to filter
+
+    Returns
+    -------
+    objects :
+        filtered objects
+    """
 
     new_objects = []
     for o in objects:
@@ -139,6 +187,33 @@ def find_longest_orfs(aa_frames):
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop
 
 def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, min_upstream_length = 50):
+    """
+    Add the upstream AAs onto orf sequences
+
+    Parameters
+    ----------
+    aa_frames : list
+        list of translated AA sequences (full length)
+    start_sites : list
+        list of start sites
+    stop_sites : list
+        list of stop sites
+    orf_sequence : list
+        list of ORF sequences (i.e. from start to stop codon)
+    orf_length : list
+        list of orf lengths
+    min_upstream_length : int
+        minimum length of upstream sequence for it to be added
+
+    Returns
+    -------
+    orf_sequence : list
+        list of ORF sequences including upstream AA where appropriate
+    start_sites : list
+        list of start sites
+    orf_length : list
+        list of orf lengths
+    """
     first_stop = np.char.find(np.array(aa_frames), "*")
     add_upstream = np.logical_and(np.logical_or(first_stop == -1, first_stop == (stop_sites-1)), start_sites > min_upstream_length)
 
@@ -154,6 +229,34 @@ def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, 
     return orf_sequence, start_sites, orf_length
 
 def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop):
+    """
+    Convert AA locations to nt locations
+
+    Parameters
+    ----------
+    start_sites : list
+        list of start sites
+    stop_sites : list
+        list of stop sites
+    seq_length_nt : list
+        list of sequence lengths (in nt)
+    orf_length : list
+        list of orf lengths
+    frame : list
+        list of frames
+    last_aa_is_stop : list
+        list of bool values for if the stop site refers to the stop codon (*) or not.
+
+    Returns
+    -------
+    start_site_nt : list
+        list of start sites (in nt)
+    stop_site_nt : list
+        list of stop sites (in nt)
+    utr3_length : list
+        list of 3' utr lengths (in nt)
+    """
+
     start_site_nt = (start_sites*3) - 3 + frame
     # only give a stop_site_nt location if the last AA is * //// NOT ANYMORE
     # using NAN values gives issues when trying to convert to int
@@ -165,6 +268,26 @@ def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length,
     return start_site_nt,stop_site_nt,utr3_length
 
 def check_first_aa(orf_sequence, start_codon='M'):
+    """
+    Check that the first AA in a list of ORF sequences is M.
+
+    Parameters
+    ----------
+    orf_sequence :
+        list of orf sequences
+    start_codon :
+        character representing the start codon
+
+    Returns
+    -------
+    first_MET : numpy array
+        array matching orf_sequence with either the start codon or 'ALT'
+
+    Examples
+    --------
+    check_first_aa(['META','ETAM'])
+    """
+
     first_aa = [o[0] for o in orf_sequence]
     first_MET = np.where(np.array(first_aa) == start_codon, start_codon, 'ALT')
     return first_MET
@@ -567,7 +690,27 @@ def write_orf_data(orf_df, file_out):
 
     orf_df.to_csv(file_out, index=False, sep='\t')
 
-def add_number_to_list(input_list):
+def unique_number_from_list(input_list):
+    """
+    Produce a list of integers corresponding to the number of times an element in the input list has been observed.
+
+    Parameters
+    ----------
+    input_list : list
+        list of values
+
+    Returns
+    -------
+    occurrence : list
+        integer list
+
+    Examples
+    --------
+
+    unique_number_from_list(['a','a','b','c','c','c'])
+    unique_number_from_list(['a','b','c'])
+
+    """
     dups = {}
     occurrence = []
     for i, val in enumerate(input_list):
