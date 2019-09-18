@@ -372,9 +372,10 @@ def find_next_stop(aa_seq, start_loc):
 
     if stop_codon == -1:
         stop_codon = len(aa_seq)-1
-
-    end_loc = stop_codon + start_loc + 1
-    return end_loc
+        return stop_codon
+    else:
+        end_loc = stop_codon + start_loc + 1
+        return end_loc
 
 def find_max_orf_index(start_locs, end_locs):
     """
