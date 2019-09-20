@@ -1,5 +1,4 @@
 # get_orfs.py
-
 import numpy as np
 import re as re
 import pandas as pd
@@ -8,75 +7,130 @@ import itertools as itertools
 from Bio import SeqIO
 import os
 
-def batch_iterator(iterator, batch_size):
-    """Returns lists of length batch_size.
-
-    This can be used on any iterator, for example to batch up
-    SeqRecord objects from Bio.SeqIO.parse(...), or to batch
-    Alignment objects from Bio.AlignIO.parse(...), or simply
-    lines from a file handle.
-
-    This is a generator function, and it returns lists of the
-    entries from the supplied iterator.  Each list will have
-    batch_size entries, although the final list may be shorter.
+def get_orfs(fasta_file, * ,both_strands = False, min_orf_length = 100, all_orfs = False, min_upstream_length = 50):
     """
-    entry = True  # Make sure we loop once
-    while entry:
-        batch = []
-        while len(batch) < batch_size:
-            try:
-                entry = next(iterator)
-            except StopIteration:
-                entry = None
-            if entry is None:
-                # End of file
-                break
-            batch.append(entry)
-        if batch:
-            yield batch
-
-
-def appendDFToCSV_void(df, csvFilePath, sep=","):
-    if not os.path.isfile(csvFilePath):
-        df.to_csv(csvFilePath, mode='a', index=False, sep=sep)
-    elif len(df.columns) != len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns):
-        raise Exception("Columns do not match!! Dataframe has " + str(len(df.columns)) + " columns. CSV file has " + str(len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns)) + " columns.")
-    elif not (df.columns == pd.read_csv(csvFilePath, nrows=1, sep=sep).columns).all():
-        raise Exception("Columns and column order of dataframe and csv file do not match!!")
-    else:
-        df.to_csv(csvFilePath, mode='a', index=False, sep=sep, header=False)
-
-# for i, batch in enumerate(batch_iterator(record_iter, 1000)):
-#     all_sequences = []
-#     for record in batch:
-#         all_sequences.append(record)
-#     print(i)
-#     print(len(all_sequences))
-#     orfs = get_orfs(all_sequences)
-#     appendDFToCSV_void(orfs, "output.txt")
-#     print(datetime.datetime.now().time())
-
-def read_fasta(fasta_file):
-    """
-    read in a fasta file
+    Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
     Parameters
     ----------
     fasta_file : str
-        path to fasta file
+        path to the fasta file to predict orfs for
+    both_strands : bool
+        Provide predictions for both strands? (i.e. reverse compliment).
+    min_orf_length : int
+        minimum length for a predicted ORF to be reported
+    all_orfs : bool
+        Return all ORFs longer than min_orf_length?
+        Set to False (default) to only return the longest ORF for each sequence.
+    min_upstream_length : int
+        Minimum length of AA sequence upstream of a canonical start site (e.g. MET) to be used when reporting incomplete_5prime ORFs.
+        Upstream sequence starts from the start of the translated sequence, and contains no STOP codons.
 
     Returns
     -------
-    sequences :
-        SeqIO records of each sequence
+    orf_df : DataFrame
+        DataFrame containing predicted ORF data and sequences
+
     """
-    all_sequences = []
+    all_sequences = read_fasta(fasta_file)
+    # create all frame translations of nt sequence
+    ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
 
-    # read in fasta file
-    for record in SeqIO.parse(fasta_file, 'fasta'):
-        all_sequences.append(record)
+    if all_orfs == False:
 
-    return all_sequences
+        # find the longest ORF in each frame
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
+
+        # check for upstream ORF?
+        # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
+        orf_sequence, start_sites, orf_length = add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length,min_upstream_length =min_upstream_length)
+
+        # filter data by minimum orf length
+        keep = orf_length >= min_orf_length
+        aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length = filter_objects(keep,  aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length)
+
+        # convert aa indices to nt-based indices
+        start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
+
+        # check first and last AA
+        first_MET = check_first_aa(orf_sequence)
+        final_stop = np.where(last_aa_is_stop, 'STOP','ALT')
+
+        # collect all and format as pandas DataFrame
+        orf_df = pd.DataFrame(index = range(len(start_sites)))
+        orf_df['id'] = ids
+        orf_df['aa_sequence'] = aa_frames
+        orf_df['frame'] = frame
+        orf_df['strand'] = strand
+        orf_df['seq_length'] = seq_length
+        orf_df['seq_length_nt'] = seq_length_nt
+        orf_df['orf_sequence'] = orf_sequence
+        orf_df['start_site'] = start_sites
+        orf_df['stop_site'] = stop_sites
+        orf_df['orf_length'] = orf_length
+        orf_df['start_site_nt'] = start_site_nt
+        orf_df['stop_site_nt'] = stop_site_nt
+        orf_df['utr3_length'] = utr3_length
+        orf_df['first_MET'] = first_MET
+        orf_df['final_stop'] = final_stop
+
+        # filter by orf with the max length for each sequence
+        idx = orf_df.groupby(['id'])['orf_length'].transform(max) == orf_df['orf_length']
+        orf_df = orf_df[idx]
+        orf_df['isoform_number'] = int(1) # isoform_number so output format is the same as if all_orfs == True
+
+    # if finding all orf > cutoff
+    else:
+
+        # make DataFrame for each AA frame - joined later with ORF data to prevent increasing the size of this too early
+        sequence_df = pd.DataFrame(index = range(len(aa_frames)))
+        sequence_df['id'] = ids
+        sequence_df['aa_sequence'] = aa_frames
+        sequence_df['frame'] = frame
+        sequence_df['strand'] = strand
+        sequence_df['seq_length'] = seq_length
+        sequence_df['seq_length_nt'] = seq_length_nt
+        sequence_df['seq_index'] = range(len(aa_frames)) # index so we can match back data later
+
+        # find all ORFs longer than min_orf_length
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_frames, min_orf_length=min_orf_length)
+
+        # check for upstream ORF?
+        # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
+        full_seq_matched = np.array(sequence_df['aa_sequence'][matched_index], dtype='str')
+        orf_sequence, start_sites, orf_length = add_upstream_aas(full_seq_matched, stop_sites,start_sites,orf_sequence,orf_length,min_upstream_length = min_upstream_length)
+
+        # filter data by minimum orf length
+        keep = orf_length >= min_orf_length
+        start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index=filter_objects(keep, start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index)
+
+        # make DataFrame of ORF data
+        orf_df = pd.DataFrame(index = range(len(orf_sequence)))
+        orf_df['seq_index'] = matched_index
+        orf_df['orf_sequence'] = orf_sequence
+        orf_df['start_site'] = start_sites
+        orf_df['stop_site'] = stop_sites
+        orf_df['orf_length'] = orf_length
+        # combine with sequence data from above
+        orf_df = pd.merge(sequence_df,orf_df,  on='seq_index', how='right')
+        orf_df.drop('seq_index', axis=1,inplace=True)
+
+
+
+        # convert aa indices to nt-based indices
+        orf_df['start_site_nt'],orf_df['stop_site_nt'],orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'],last_aa_is_stop)
+
+        # check first and last AA
+        orf_df['first_MET'] = check_first_aa(orf_df['orf_sequence'])
+        orf_df['final_stop'] = np.where(last_aa_is_stop, 'STOP','ALT')
+        orf_df['isoform_number'] = unique_number_from_list(orf_df.id)
+
+    # add ORF classification
+    orf_df['orf_class'] = add_orf_classification(orf_df)
+    # Generate ids for writing to fasta
+    orf_df['fasta_id'] = ('>' + orf_df.id + '.orf' +  orf_df.isoform_number.map(str) + ' ' +  orf_df.orf_class + ':' + orf_df.start_site_nt.map(str) + '-' + orf_df.stop_site_nt.map(str) + ' strand:' +  orf_df.strand.map(str))
+
+    return orf_df
 
 def translate_all_frames(sequences, both_strands=False):
 
@@ -161,6 +215,125 @@ def find_longest_orfs(aa_frames):
     last_aa_is_stop = np.array(last_aa_is_stop)
 
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop
+
+def orf_start_stop_from_aa(aa_seq, *, max_only = True):
+    """
+    Find locations of the start (M) and stop (*) codons that produce the longest ORF
+
+    Parameters
+    ----------
+    aa_seq : str
+        amino acid sequence
+    max_only : bool
+        Only return that start and stop locations of the longest ORF
+
+    Returns
+    -------
+    start_loc : int
+        start location
+    end_loc : int
+        end location
+
+    Examples
+    --------
+
+    orf_start_stop_from_aa("META*")
+    orf_start_stop_from_aa("META*MEATBORF*")
+    orf_start_stop_from_aa("META*MEATBORF")
+    orf_start_stop_from_aa("MEATBORF")
+
+    """
+
+    # find all M
+    if aa_seq.count("M") > 0:
+        start_locs = []
+        end_locs = []
+
+        M_locations = [m.span()[0] for m in re.finditer('M', aa_seq)]
+        last_end = -1
+        for m in M_locations:
+            if m > last_end-1:
+                stop_location = find_next_stop(aa_seq, m)
+                start_locs.append(m)
+                end_locs.append(stop_location)
+                last_end = stop_location
+        # if returning all > 100AA
+        # find the start/end of the longest ORF
+        if max_only == True:
+            max_start,max_end = find_max_orf_index(start_locs, end_locs)
+        else:
+            max_start, max_end = start_locs,end_locs
+
+    else:
+        max_start = 0
+        max_end = find_next_stop(aa_seq, max_start)
+
+    return max_start,max_end
+
+def find_next_stop(aa_seq, start_loc):
+    """
+    Find location of the next stop codon (*) after the start location.
+    Return string length if no stop codon is found.
+
+    Parameters
+    ----------
+    aa_seq : str
+        amino acid sequence
+    start_loc : int
+        start location
+
+    Returns
+    -------
+    end_loc : int
+        location of the next stop codon, or length of string if none is found
+
+    Examples
+    --------
+
+    find_next_stop("AAAMBBB*CCC*", 4)
+    find_next_stop("AAAMBBBCCC", 4)
+
+    """
+    stop_codon = np.char.find(aa_seq[start_loc:], '*')
+
+    if stop_codon == -1:
+        stop_codon = len(aa_seq)
+        return stop_codon
+    else:
+        end_loc = stop_codon + start_loc + 1
+        return end_loc
+
+def find_max_orf_index(start_locs, end_locs):
+    """
+    Given sets of start and end locations, return the set with the largest difference
+
+    Parameters
+    ----------
+    start_locs : np.array
+        start locations
+    end_locs : np.array
+        end locations
+
+    Returns
+    -------
+    start_loc : int
+        start location
+    end_loc : int
+        end location
+
+    Examples
+    --------
+
+    find_max_orf_index(start_locs = [0,100], end_locs = [1000, 200])
+
+    """
+    orf_lengths = np.array(end_locs) - np.array(start_locs)
+    if orf_lengths.size > 1:
+        max_index = np.where(orf_lengths == np.amax(orf_lengths))[0]
+        return np.array(start_locs)[max_index][0], np.array(end_locs)[max_index][0]
+    else:
+        return np.array(start_locs)[0], np.array(end_locs)[0]
+
 
 def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, min_upstream_length = 50):
     """
@@ -320,232 +493,6 @@ def find_all_orfs(aa_frames, min_orf_length):
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index
 
 # return location of the next stop in a sequence, or return the length if no stop found
-def find_next_stop(aa_seq, start_loc):
-    """
-    Find location of the next stop codon (*) after the start location.
-    Return string length if no stop codon is found.
-
-    Parameters
-    ----------
-    aa_seq : str
-        amino acid sequence
-    start_loc : int
-        start location
-
-    Returns
-    -------
-    end_loc : int
-        location of the next stop codon, or length of string if none is found
-
-    Examples
-    --------
-
-    find_next_stop("AAAMBBB*CCC*", 4)
-    find_next_stop("AAAMBBBCCC", 4)
-
-    """
-    stop_codon = np.char.find(aa_seq[start_loc:], '*')
-
-    if stop_codon == -1:
-        stop_codon = len(aa_seq)-1
-        return stop_codon
-    else:
-        end_loc = stop_codon + start_loc + 1
-        return end_loc
-
-def find_max_orf_index(start_locs, end_locs):
-    """
-    Given sets of start and end locations, return the set with the largest difference
-
-    Parameters
-    ----------
-    start_locs : np.array
-        start locations
-    end_locs : np.array
-        end locations
-
-    Returns
-    -------
-    start_loc : int
-        start location
-    end_loc : int
-        end location
-
-    Examples
-    --------
-
-    find_max_orf_index(start_locs = [0,100], end_locs = [1000, 200])
-
-    """
-    orf_lengths = np.array(end_locs) - np.array(start_locs)
-    if orf_lengths.size > 1:
-        max_index = np.where(orf_lengths == np.amax(orf_lengths))[0]
-        return np.array(start_locs)[max_index][0], np.array(end_locs)[max_index][0]
-    else:
-        return np.array(start_locs)[0], np.array(end_locs)[0]
-
-
-def replace_last_stop(orf_seq):
-
-    """
-    replace * with nothing as the final character in in string
-
-    Parameters
-    ----------
-    orf_seq : str
-        orf_sequence
-
-    Returns
-    -------
-    orf_seq : str
-        orf_sequence
-
-    Examples
-    --------
-
-    replace_last_stop("META*")
-    replace_last_stop("METAL")
-
-    """
-
-    if orf_seq[-1] == '*':
-        replaced_orf_seq = orf_seq[0:-1]
-        return replaced_orf_seq
-    else:
-        return orf_seq
-
-def orf_start_stop_from_aa(aa_seq, *, max_only = True):
-    """
-    Find locations of the start (M) and stop (*) codons that produce the longest ORF
-
-    Parameters
-    ----------
-    aa_seq : str
-        amino acid sequence
-    max_only : bool
-        Only return that start and stop locations of the longest ORF
-
-    Returns
-    -------
-    start_loc : int
-        start location
-    end_loc : int
-        end location
-
-    Examples
-    --------
-
-    orf_start_stop_from_aa("META*")
-    orf_start_stop_from_aa("META*MEATBORF*")
-    orf_start_stop_from_aa("META*MEATBORF")
-    orf_start_stop_from_aa("MEATBORF")
-
-    """
-
-    # find all M
-    if aa_seq.count("M") > 0:
-        start_locs = []
-        end_locs = []
-
-        M_locations = [m.span()[0] for m in re.finditer('M', aa_seq)]
-        last_end = -1
-        for m in M_locations:
-            if m > last_end-1:
-                stop_location = find_next_stop(aa_seq, m)
-                start_locs.append(m)
-                end_locs.append(stop_location)
-                last_end = stop_location
-        # if returning all > 100AA
-        # find the start/end of the longest ORF
-        if max_only == True:
-            max_start,max_end = find_max_orf_index(start_locs, end_locs)
-        else:
-            max_start, max_end = start_locs,end_locs
-
-    else:
-        max_start = 0
-        max_end = find_next_stop(aa_seq, max_start)
-
-    return max_start,max_end
-
-def add_orf_classification(orf_df):
-    """
-    Generate ORF type classification from an orf_df.
-    complete: Complete CDS - contains start codon and stop codon
-    incomplete_5prime: Incomplete CDS - has stop codon, but start of sequence indicates that an upstream start codon may be missing.
-    incomplete_3prime: Incomplete CDS - has start codon, but no stop codon.
-    incomplete: Incomplete CDS - Both start codon and stop codon not found.
-
-    Parameters
-    ----------
-    orf_df : DataFrame
-        orf_df DataFrame
-
-    Returns
-    -------
-    orf_class : np.array
-        numpy array of orf classifications
-
-    """
-    orf_class = np.empty(len(orf_df['first_MET']), dtype='object')
-
-    orf_class[np.logical_and(orf_df['first_MET'] == "M", orf_df['final_stop'] == "STOP")] = 'complete' # complete CDS
-    orf_class[np.logical_and(orf_df['first_MET'] != "M", orf_df['final_stop'] == "STOP")] = 'incomplete_5prime' # incomplete_5prime
-    orf_class[np.logical_and(orf_df['first_MET'] == "M", orf_df['final_stop'] != "STOP")] = 'incomplete_3prime' # incomplete_3prime
-    orf_class[np.logical_and(orf_df['first_MET'] != "M", orf_df['final_stop'] != "STOP")] = 'incomplete' # incomplete
-
-    return orf_class
-
-def write_orf_fasta(orf_df, file_out):
-    """
-    Write ORF sequences to a fasta file.
-
-    Parameters
-    ----------
-    orf_df : DataFrame
-        orf_df DataFrame
-    file_out : str
-        path to file to write fasta sequences
-
-    """
-    # check if file exists
-    #
-
-    orf_df.to_csv(file_out, index=False, sep='\n', header=False,columns = ['fasta_id','orf_sequence'])
-
-import sys
-
-def check_things(i):
-
-    if i > 10:
-        checked = input('Overwrite file? y/n')
-    if checked == 'y':
-        print('overwriting...')
-    else:
-        print('Please supply an alternative output file name and run again.')
-        sys.exit("Quitting borf")
-
-
-#check_things(100)
-
-def write_orf_data(orf_df, file_out):
-    """
-    Write ORF sequence metadata to txt file.
-
-    Parameters
-    ----------
-    orf_df : DataFrame
-        orf_df DataFrame
-    file_out : str
-        path to file to write txt file
-
-    """
-
-    orf_df = orf_df[['fasta_id', 'id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length', 'start_site', 'stop_site', 'orf_length', 'first_MET', 'final_stop', 'orf_class']]
-
-    orf_df.columns = ['orf_id', 'transcript_id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length_nt', 'start_site_aa', 'stop_site_aa', 'orf_length_aa', 'first_aa_MET', 'final_aa_stop', 'orf_class']
-
-    orf_df.to_csv(file_out, index=False, sep='\t')
 
 def unique_number_from_list(input_list):
     """
@@ -583,130 +530,100 @@ def unique_number_from_list(input_list):
         occurrence.append(dups[val][1])
     return occurrence
 
-fasta_file = '/Users/143470/Projects/C3/get_orfs/test_strand_copies.fa'
-both_strands = True
-
-def get_orfs(fasta_file, * ,both_strands = False, min_orf_length = 100, all_orfs = False, min_upstream_length = 50):
+def add_orf_classification(orf_df):
     """
-    Produce a pandas DataFrame of predicted ORFs from a fasta file.
+    Generate ORF type classification from an orf_df.
+    complete: Complete CDS - contains start codon and stop codon
+    incomplete_5prime: Incomplete CDS - has stop codon, but start of sequence indicates that an upstream start codon may be missing.
+    incomplete_3prime: Incomplete CDS - has start codon, but no stop codon.
+    incomplete: Incomplete CDS - Both start codon and stop codon not found.
+
+    Parameters
+    ----------
+    orf_df : DataFrame
+        orf_df DataFrame
+
+    Returns
+    -------
+    orf_class : np.array
+        numpy array of orf classifications
+
+    """
+    orf_class = np.empty(len(orf_df['first_MET']), dtype='object')
+
+    orf_class[np.logical_and(orf_df['first_MET'] == "M", orf_df['final_stop'] == "STOP")] = 'complete' # complete CDS
+    orf_class[np.logical_and(orf_df['first_MET'] != "M", orf_df['final_stop'] == "STOP")] = 'incomplete_5prime' # incomplete_5prime
+    orf_class[np.logical_and(orf_df['first_MET'] == "M", orf_df['final_stop'] != "STOP")] = 'incomplete_3prime' # incomplete_3prime
+    orf_class[np.logical_and(orf_df['first_MET'] != "M", orf_df['final_stop'] != "STOP")] = 'incomplete' # incomplete
+
+    return orf_class
+
+def read_fasta(fasta_file):
+    """
+    read in a fasta file
 
     Parameters
     ----------
     fasta_file : str
-        path to the fasta file to predict orfs for
-    both_strands : bool
-        Provide predictions for both strands? (i.e. reverse compliment).
-    min_orf_length : int
-        minimum length for a predicted ORF to be reported
-    all_orfs : bool
-        Return all ORFs longer than min_orf_length?
-        Set to False (default) to only return the longest ORF for each sequence.
-    min_upstream_length : int
-        Minimum length of AA sequence upstream of a canonical start site (e.g. MET) to be used when reporting incomplete_5prime ORFs.
-        Upstream sequence starts from the start of the translated sequence, and contains no STOP codons.
+        path to fasta file
 
     Returns
     -------
+    sequences :
+        SeqIO records of each sequence
+    """
+    all_sequences = []
+
+    # read in fasta file
+    for record in SeqIO.parse(fasta_file, 'fasta'):
+        all_sequences.append(record.upper())
+
+    return all_sequences
+
+def check_things(i):
+
+    if i > 10:
+        checked = input('Overwrite file? y/n')
+    if checked == 'y':
+        print('overwriting...')
+    else:
+        print('Please supply an alternative output file name and run again.')
+        sys.exit("Quitting borf")
+
+def write_orf_data(orf_df, file_out):
+    """
+    Write ORF sequence metadata to txt file.
+
+    Parameters
+    ----------
     orf_df : DataFrame
-        DataFrame containing predicted ORF data and sequences
+        orf_df DataFrame
+    file_out : str
+        path to file to write txt file
 
     """
-    all_sequences = read_fasta(fasta_file)
-    # create all frame translations of nt sequence
-    ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
 
-    if all_orfs == False:
+    orf_df = orf_df[['fasta_id', 'id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length', 'start_site', 'stop_site', 'orf_length', 'first_MET', 'final_stop', 'orf_class']]
 
-        # find the longest ORF in each frame
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
+    orf_df.columns = ['orf_id', 'transcript_id','frame','strand','seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length_nt', 'start_site_aa', 'stop_site_aa', 'orf_length_aa', 'first_aa_MET', 'final_aa_stop', 'orf_class']
 
-        # check for upstream ORF?
-        # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
-        orf_sequence, start_sites, orf_length = add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length,min_upstream_length =min_upstream_length)
-
-        # filter data by minimum orf length
-        keep = orf_length > min_orf_length
-        aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length = filter_objects(keep,  aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length)
-
-        # convert aa indices to nt-based indices
-        start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
-
-        # check first and last AA
-        first_MET = check_first_aa(orf_sequence)
-        final_stop = np.where(last_aa_is_stop, 'STOP','ALT')
-
-        # collect all and format as pandas DataFrame
-        orf_df = pd.DataFrame(index = range(len(start_sites)))
-        orf_df['id'] = ids
-        orf_df['aa_sequence'] = aa_frames
-        orf_df['frame'] = frame
-        orf_df['strand'] = strand
-        orf_df['seq_length'] = seq_length
-        orf_df['seq_length_nt'] = seq_length_nt
-        orf_df['orf_sequence'] = orf_sequence
-        orf_df['start_site'] = start_sites
-        orf_df['stop_site'] = stop_sites
-        orf_df['orf_length'] = orf_length
-        orf_df['start_site_nt'] = start_site_nt
-        orf_df['stop_site_nt'] = stop_site_nt
-        orf_df['utr3_length'] = utr3_length
-        orf_df['first_MET'] = first_MET
-        orf_df['final_stop'] = final_stop
-
-        # filter by orf with the max length for each sequence
-        idx = orf_df.groupby(['id'])['orf_length'].transform(max) == orf_df['orf_length']
-        orf_df = orf_df[idx]
-        orf_df['isoform_number'] = int(1) # isoform_number so output format is the same as if all_orfs == True
-
-    # if finding all orf > cutoff
-    else:
-
-        # make DataFrame for each AA frame - joined later with ORF data to prevent increasing the size of this too early
-        sequence_df = pd.DataFrame(index = range(len(aa_frames)))
-        sequence_df['id'] = ids
-        sequence_df['aa_sequence'] = aa_frames
-        sequence_df['frame'] = frame
-        sequence_df['strand'] = strand
-        sequence_df['seq_length'] = seq_length
-        sequence_df['seq_length_nt'] = seq_length_nt
-        sequence_df['seq_index'] = range(len(aa_frames)) # index so we can match back data later
-
-        # find all ORFs longer than min_orf_length
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_frames, min_orf_length=min_orf_length)
-
-        # check for upstream ORF?
-        # get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon
-        full_seq_matched = np.array(sequence_df['aa_sequence'][matched_index], dtype='str')
-        orf_sequence, start_sites, orf_length = add_upstream_aas(full_seq_matched, stop_sites,start_sites,orf_sequence,orf_length,min_upstream_length = min_upstream_length)
-
-        # filter data by minimum orf length
-        keep = orf_length > min_orf_length
-        start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index=filter_objects(keep, start_sites,stop_sites,orf_sequence,last_aa_is_stop,orf_length,matched_index)
-
-        # make DataFrame of ORF data
-        orf_df = pd.DataFrame(index = range(len(orf_sequence)))
-        orf_df['seq_index'] = matched_index
-        orf_df['orf_sequence'] = orf_sequence
-        orf_df['start_site'] = start_sites
-        orf_df['stop_site'] = stop_sites
-        orf_df['orf_length'] = orf_length
-        # combine with sequence data from above
-        orf_df = pd.merge(sequence_df,orf_df,  on='seq_index', how='right')
-        orf_df.drop('seq_index', axis=1,inplace=True)
+    orf_df.to_csv(file_out, index=False, sep='\t')
 
 
 
-        # convert aa indices to nt-based indices
-        orf_df['start_site_nt'],orf_df['stop_site_nt'],orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'],last_aa_is_stop)
+def write_orf_fasta(orf_df, file_out):
+    """
+    Write ORF sequences to a fasta file.
 
-        # check first and last AA
-        orf_df['first_MET'] = check_first_aa(orf_df['orf_sequence'])
-        orf_df['final_stop'] = np.where(last_aa_is_stop, 'STOP','ALT')
-        orf_df['isoform_number'] = unique_number_from_list(orf_df.id)
+    Parameters
+    ----------
+    orf_df : DataFrame
+        orf_df DataFrame
+    file_out : str
+        path to file to write fasta sequences
 
-    # add ORF classification
-    orf_df['orf_class'] = add_orf_classification(orf_df)
-    # Generate ids for writing to fasta
-    orf_df['fasta_id'] = ('>' + orf_df.id + '.orf' +  orf_df.isoform_number.map(str) + ' ' +  orf_df.orf_class + ':' + orf_df.start_site_nt.map(str) + '-' + orf_df.stop_site_nt.map(str) + ' strand:' +  orf_df.strand.map(str))
+    """
+    # check if file exists
+    #
 
-    return orf_df
+    orf_df.to_csv(file_out, index=False, sep='\n', header=False,columns = ['fasta_id','orf_sequence'])
