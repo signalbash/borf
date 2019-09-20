@@ -367,7 +367,8 @@ def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, 
     add_upstream = np.logical_and(np.logical_or(first_stop == -1, first_stop == (stop_sites-1)), start_sites > min_upstream_length)
 
     if np.any(add_upstream):
-        orf_sequence_withup = orf_sequence.copy()
+        # object so no sequence truncation
+        orf_sequence_withup = orf_sequence.copy().astype('object')
         orf_length_withup = orf_length.copy()
         start_sites_withup = start_sites.copy()
 
