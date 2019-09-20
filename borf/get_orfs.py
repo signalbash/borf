@@ -379,9 +379,64 @@ def add_upstream_aas(aa_frames, stop_sites,start_sites,orf_sequence,orf_length, 
         start_sites_withup[add_upstream] = 1 #set to 1 for upstream ORFs
         orf_length_withup[add_upstream] = np.array([len(o) for o in orf_sequence_withup[add_upstream]])
 
+        orf_sequence_withup = orf_sequence_withup.astype(str)
+
         return orf_sequence_withup, start_sites_withup, orf_length_withup
     else:
         return orf_sequence, start_sites, orf_length
+
+def replace_last_stop(orf_seq):
+
+    """
+    replace * with nothing as the final character in in string
+
+    Parameters
+    ----------
+    orf_seq : str
+        orf_sequence
+
+    Returns
+    -------
+    orf_seq : str
+        orf_sequence
+
+    Examples
+    --------
+
+    replace_last_stop("META*")
+    replace_last_stop("METAL")
+
+    """
+
+    if orf_seq[-1] == '*':
+        replaced_orf_seq = orf_seq[0:-1]
+        return replaced_orf_seq
+    else:
+        return orf_seq
+
+def filter_objects(filter, *objects):
+
+    """
+    filter multiple objects
+
+    Parameters
+    ----------
+    filter : list
+        boolean list
+    objects :
+        objects to filter
+
+    Returns
+    -------
+    objects :
+        filtered objects
+    """
+
+    new_objects = []
+    for o in objects:
+        new_objects.append(o[filter])
+
+    return new_objects
 
 def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop):
     """
