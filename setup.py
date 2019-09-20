@@ -37,7 +37,7 @@ setup(
     name='borf',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="Better ORF predictions",
+    description="ORF predictions from .fa files",
     long_description=readme,
     author="Beth Signal",
     author_email='bethany.signal@uts.edu.au',
@@ -46,7 +46,7 @@ setup(
     packages=find_packages(exclude=['docs', 'tests']),
     entry_points={
         'console_scripts': [
-            # 'command = some.module:some_function',
+            'borf = borf.borf:main',
         ],
     },
     include_package_data=True,
