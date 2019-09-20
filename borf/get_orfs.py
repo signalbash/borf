@@ -414,7 +414,7 @@ def convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length,
     start_site_nt = (start_sites*3) - 3 + frame
     # only give a stop_site_nt location if the last AA is * //// NOT ANYMORE
     # using NAN values gives issues when trying to convert to int
-    stop_site_nt = orf_length*3 + start_site_nt + 3  - frame
+    stop_site_nt = orf_length*3 + start_site_nt + 3  - 1
 
     utr3_length = np.zeros(len(start_site_nt))
     utr3_length[last_aa_is_stop]  = seq_length_nt[last_aa_is_stop] - stop_site_nt[last_aa_is_stop]
