@@ -131,30 +131,6 @@ def translate_all_frames(sequences, both_strands=False):
     ids = np.array(ids)
     return ids, aa_seq_by_frame, frame, strand, seq_length_nt, seq_length
 
-def filter_objects(filter, *objects):
-
-    """
-    filter multiple objects
-
-    Parameters
-    ----------
-    filter : list
-        boolean list
-    objects :
-        objects to filter
-
-    Returns
-    -------
-    objects :
-        filtered objects
-    """
-
-    new_objects = []
-    for o in objects:
-        new_objects.append(o[filter])
-
-    return new_objects
-
 def find_longest_orfs(aa_frames):
     start_sites = []
     stop_sites = []
