@@ -151,26 +151,36 @@ def translate_all_frames(sequences, both_strands=False):
     objects :
         filtered objects
     """
-
     # create all frame translations of nt sequence
     aa_seq_by_frame = []
     frame = []
     seq_length_nt = []
     ids = []
     for seq_string in sequences:
-        for reading_frame in range(3):
 
-            aa_seq_by_frame.append(str(skbio.DNA(str(seq_string.seq[reading_frame:])).translate()))
-            frame.append(reading_frame)
-            seq_length_nt.append(len(str(seq_string.seq)))
-            ids.append(seq_string.id)
+        nucleotide_seq = str(seq_string.seq)
+        non_ATGC = len(nucleotide_seq) - (nucleotide_seq.count('A') + nucleotide_seq.count('T') + nucleotide_seq.count('G') + nucleotide_seq.count('C'))
+        skip = non_ATGC > 0
 
-            if both_strands == True:
-                # translate reverse compliment
-                aa_seq_by_frame.append(str(skbio.DNA(str(skbio.DNA(str(seq_string.seq)).complement(reverse=True))[reading_frame:]).translate()))
+        if skip == False:
+
+            for reading_frame in range(3):
+
+                aa_seq_by_frame.append(str(skbio.DNA(str(seq_string.seq[reading_frame:])).translate()))
                 frame.append(reading_frame)
                 seq_length_nt.append(len(str(seq_string.seq)))
                 ids.append(seq_string.id)
+
+                if both_strands == True:
+                    # translate reverse compliment
+                    aa_seq_by_frame.append(str(skbio.DNA(str(skbio.DNA(str(seq_string.seq)).complement(reverse=True))[reading_frame:]).translate()))
+                    frame.append(reading_frame)
+                    seq_length_nt.append(len(str(seq_string.seq)))
+                    ids.append(seq_string.id)
+
+        else:
+            print("Skipping " + str(seq_string.id) + ". Found " + str(non_ATGC) +  " non-ACGT characters.")
+            seq_string.id
 
     seq_length_nt = np.array(seq_length_nt)
     aa_seq_by_frame = np.array(aa_seq_by_frame)
