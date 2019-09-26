@@ -10,9 +10,11 @@ borf
 
 
 Better ORF predictions
+Fast and flexible ORF prediction in python with appropriate defaults for de novo assembled transcripts. 
+
 
 * Free software: 3-clause BSD license
-* Documentation: (COMING SOON!) https://betsig.github.io/borf.
+* Documentation: https://github.com/betsig/borf/wiki
 
 Installation
 --------
@@ -23,8 +25,3 @@ Installation
         python setup.py install
 
 
-
-Features
---------
-
-* TODO
