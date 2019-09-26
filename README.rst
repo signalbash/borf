@@ -9,8 +9,9 @@ borf
         :target: https://pypi.python.org/pypi/borf
 
 
-Better ORF predictions
-Fast and flexible ORF prediction in python with appropriate defaults for de novo assembled transcripts. 
+**Better ORF predictions**
+
+Fast and flexible ORF prediction in python with appropriate defaults for *de novo* assembled transcripts. 
 
 
 * Free software: 3-clause BSD license
