@@ -6,6 +6,12 @@ cache:
     - $HOME/.cache/pip
     - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
 
+env:
+  global:
+  # Doctr deploy key for betsig/borf
+  - secure: "rp1A///9UiizP66RSQyOUE2aR5RIrJYhs6gcpqR4TLLVWFCAC149R9tLcRjDRJ8alWkEoobgfBnTxYRfXP+LvnruxL3SYkfwTMm46hO2IouIsnLU9QQoxZGcjSHLTPnu+kSybobFPmTvdZ84YIV8awyiUg4mhqvNW+lfNC6nONisS/tSkR7jWapyKH7X+HlpYIBKADpUaE8D383uCL6bhLPkxgrmqA989BvFwxRofvVw4j4a2KXcC+vQjIYxVkSO5q27vkKI6yZNaAxlxUu2yVjSQ84MZ925Rw6QmqhSnfwxn9a22FlNl7JyWmeBjdQRv3WIjdqGGPORa5NvsdalT76GjFtTB/G9eyB2MH8oAcyBQkj421lG6ktcp4ldhSXguKc45QyfGNqc9XLbTafbs28SHbM86kIbRq1y3R2jDnYL6bh/AA0k9zjsMQ8J7taKv+EYV3Ny5wPsbubH2cLM5ioQykcRdIMDpkcpYwYC4pLErcGYb7/AFX3zRJxBxf2y4Vg0+/88ftCVrSnpmJsqrkHgu9We1Y4zmMKID6IENGyUlc5p8tbuNjSv3TRUJs8g6sNym1rqPCciDILkJUuqZ2NQ57qPCXejTPmVhtsEHKCCc7HVKibnMVU5Xj/gPJiiQTT3OGQe8YZ42Bi482f8Lb9+PknG7ivNeUMz7K9rHKE="
+
+
 install:
   # Install this package and the packages listed in requirements.txt.
   - pip install .
@@ -17,4 +23,7 @@ script:
   - coverage report -m  # Generate test coverage report.
   - codecov  # Upload the report to codecov.
   - flake8 --max-line-length=115  # Enforce code style (but relax line length limit a bit).
-  - make -C docs html  # Build the documentation.
+  - set -e
+  - make -C docs html
+  - pip install doctr
+  - doctr deploy --built-docs docs/build/html .
