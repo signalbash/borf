@@ -55,6 +55,7 @@ setup(
             # When adding files here, remember to update MANIFEST.in as well,
             # or else they will not be included in the distribution on PyPI!
             # 'path/to/data_file',
+            test_data/*.fa
         ]
     },
     install_requires=requirements,

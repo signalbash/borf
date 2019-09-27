@@ -13,7 +13,7 @@ class TestReadFasta(unittest.TestCase):
     def test_read_fasta(self):
 
         # check that files are read into correct format"
-        read_sequence = read_fasta('tests/test_mutliple_frame_orfs.fa')
+        read_sequence = read_fasta('test_data/test_mutliple_frame_orfs.fa')
         seq_array = [str(x.seq) for x in read_sequence]
         # check sequence matches.. (only check first/last few nts, and total length)
         t_start = seq_array[0][0:20] == 'GCTTCGGGTTGGTGTCATGG'
@@ -203,7 +203,7 @@ class TestTranslateAllFrames(unittest.TestCase):
 
     def test_translate_output_format(self):
         # tests that a length 3 tupple output, and each is the correct numpy array type
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         output = translate_all_frames(sequences, both_strands=False)
 
         t_len = len(output) == 6
@@ -219,32 +219,32 @@ class TestTranslateAllFrames(unittest.TestCase):
         self.assertTrue(all_right_types)
 
     def test_translate_allframes(self):
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         self.assertTrue(np.all(frame == np.array([1,2,3])))
 
     def test_translate_alltransframes(self):
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         self.assertTrue(np.all(aa_frames == np.array(['MANATEE*', 'WRTRPKN', 'GERDRRI'])))
 
     def test_translate_posstrand(self):
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         self.assertTrue(np.all(strand == np.array(['+', '+', '+'])))
 
     def test_translate_seq_length_nt(self):
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         self.assertTrue(np.all(seq_length_nt == np.array([24, 24, 24])))
 
     def test_translate_seq_length(self):
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         self.assertTrue(np.all(seq_length == np.array([8, 7, 7])))
 
     def test_translate_bothstrands(self):
-        sequences = read_fasta('tests/test_trans_all_frames.fa')
+        sequences = read_fasta('test_data/test_trans_all_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=True)
 
         frame_correct = np.all(frame == np.array([1, 1, 2, 2, 3, 3]))
@@ -259,7 +259,7 @@ class TestConvertAANT(unittest.TestCase):
 
     def test_convert_nt_output_format(self):
         # tests that a length 3 tupple output, and each is the correct numpy array type
-        sequences = read_fasta('tests/test_frames.fa')
+        sequences = read_fasta('test_data/test_frames.fa')
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
         # filter data by minimum orf length
@@ -278,7 +278,7 @@ class TestConvertAANT(unittest.TestCase):
         self.assertTrue(all_right_types)
 
     def test_convert_start_nt(self):
-        sequences = read_fasta('tests/test_frames.fa')
+        sequences = read_fasta('test_data/test_frames.fa')
 
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
@@ -291,7 +291,7 @@ class TestConvertAANT(unittest.TestCase):
         self.assertTrue(np.all(start_site_nt == np.array([1,2,3])))
 
     def test_convert_stop_nt(self):
-        sequences = read_fasta('tests/test_frames.fa')
+        sequences = read_fasta('test_data/test_frames.fa')
 
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
@@ -303,7 +303,7 @@ class TestConvertAANT(unittest.TestCase):
         self.assertTrue(np.all(stop_site_nt == np.array([21,22,23])))
 
     def test_convert_utr_nt(self):
-        sequences = read_fasta('tests/test_frames.fa')
+        sequences = read_fasta('test_data/test_frames.fa')
 
         ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
@@ -458,7 +458,7 @@ class TestGetORFs(unittest.TestCase):
         expected['orf_class'] = 'complete'
         expected['fasta_id'] = '>Single_FA.orf1 complete:1-21 strand:+'
 
-        orf_df = get_orfs('tests/test_getorfs.fa',  min_orf_length = 5)
+        orf_df = get_orfs('test_data/test_getorfs.fa',  min_orf_length = 5)
 
         self.assertTrue(orf_df.equals(expected))
 
@@ -484,7 +484,7 @@ class TestGetORFs(unittest.TestCase):
         expected['orf_class'] = ['complete', 'incomplete']
         expected['fasta_id'] = ['>Single_FA.orf1 complete:1-21 strand:+','>Single_FA.orf2 incomplete:3-29 strand:-']
 
-        orf_df = get_orfs('tests/test_getorfs.fa',  min_orf_length = 5, both_strands = True, all_orfs = True)
+        orf_df = get_orfs('test_data/test_getorfs.fa',  min_orf_length = 5, both_strands = True, all_orfs = True)
 
         self.assertTrue(orf_df.equals(expected))
 
