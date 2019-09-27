@@ -1,0 +1,892 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>borf.get_orfs &mdash; borf 0.post34+g967aa95 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+        <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> borf
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.post34+g967aa95
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-history.html">Release History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../min_versions.html">Minimum Version of Python and NumPy</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">borf</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>borf.get_orfs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for borf.get_orfs</h1><div class="highlight"><pre>
+<span></span><span class="c1"># get_orfs.py</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">re</span> <span class="k">as</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">skbio</span> <span class="k">as</span> <span class="nn">skbio</span>
+<span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">Bio</span> <span class="k">import</span> <span class="n">SeqIO</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<div class="viewcode-block" id="get_orfs"><a class="viewcode-back" href="../../usage.html#borf.get_orfs.get_orfs">[docs]</a><span class="k">def</span> <span class="nf">get_orfs</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">,</span> <span class="o">*</span> <span class="p">,</span><span class="n">both_strands</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">min_orf_length</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">all_orfs</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">min_upstream_length</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Produce a pandas DataFrame of predicted ORFs from a fasta file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fasta_file : str</span>
+<span class="sd">        path to the fasta file to predict orfs for</span>
+<span class="sd">    both_strands : bool</span>
+<span class="sd">        Provide predictions for both strands? (i.e. reverse compliment).</span>
+<span class="sd">    min_orf_length : int</span>
+<span class="sd">        minimum length for a predicted ORF to be reported</span>
+<span class="sd">    all_orfs : bool</span>
+<span class="sd">        Return all ORFs longer than min_orf_length?</span>
+<span class="sd">        Set to False (default) to only return the longest ORF for each sequence.</span>
+<span class="sd">    min_upstream_length : int</span>
+<span class="sd">        Minimum length of AA sequence upstream of a canonical start site (e.g. MET) to be used when reporting incomplete_5prime ORFs.</span>
+<span class="sd">        Upstream sequence starts from the start of the translated sequence, and contains no STOP codons.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    orf_df : DataFrame</span>
+<span class="sd">        DataFrame containing predicted ORF data and sequences</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_sequences</span> <span class="o">=</span> <span class="n">read_fasta</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+    <span class="c1"># create all frame translations of nt sequence</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">seq_length</span> <span class="o">=</span> <span class="n">translate_all_frames</span><span class="p">(</span><span class="n">all_sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="n">both_strands</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">all_orfs</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+
+        <span class="c1"># find the longest ORF in each frame</span>
+        <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">last_aa_is_stop</span> <span class="o">=</span> <span class="n">find_longest_orfs</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">)</span>
+
+        <span class="c1"># check for upstream ORF?</span>
+        <span class="c1"># get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon</span>
+        <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">orf_length</span> <span class="o">=</span> <span class="n">add_upstream_aas</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span><span class="n">start_sites</span><span class="p">,</span><span class="n">orf_sequence</span><span class="p">,</span><span class="n">orf_length</span><span class="p">,</span><span class="n">min_upstream_length</span> <span class="o">=</span><span class="n">min_upstream_length</span><span class="p">)</span>
+
+        <span class="c1"># filter data by minimum orf length</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">orf_length</span> <span class="o">&gt;=</span> <span class="n">min_orf_length</span>
+        <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="n">orf_length</span> <span class="o">=</span> <span class="n">filter_objects</span><span class="p">(</span><span class="n">keep</span><span class="p">,</span>  <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">)</span>
+
+        <span class="c1"># convert aa indices to nt-based indices</span>
+        <span class="n">start_site_nt</span><span class="p">,</span> <span class="n">stop_site_nt</span><span class="p">,</span> <span class="n">utr3_length</span> <span class="o">=</span> <span class="n">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">)</span>
+
+        <span class="c1"># check first and last AA</span>
+        <span class="n">first_MET</span> <span class="o">=</span> <span class="n">check_first_aa</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">)</span>
+        <span class="n">final_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">,</span><span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
+
+        <span class="c1"># collect all and format as pandas DataFrame</span>
+        <span class="n">orf_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">start_sites</span><span class="p">)))</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;aa_sequence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aa_frames</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;strand&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">strand</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;seq_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_length</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_length_nt</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_sequence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">orf_sequence</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_sites</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stop_sites</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">orf_length</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site_nt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_site_nt</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site_nt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stop_site_nt</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;utr3_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">utr3_length</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">first_MET</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_stop</span>
+
+        <span class="c1"># filter by orf with the max length for each sequence</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;id&#39;</span><span class="p">])[</span><span class="s1">&#39;orf_length&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="nb">max</span><span class="p">)</span> <span class="o">==</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_length&#39;</span><span class="p">]</span>
+        <span class="n">orf_df</span> <span class="o">=</span> <span class="n">orf_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;isoform_number&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># isoform_number so output format is the same as if all_orfs == True</span>
+
+    <span class="c1"># if finding all orf &gt; cutoff</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="c1"># make DataFrame for each AA frame - joined later with ORF data to prevent increasing the size of this too early</span>
+        <span class="n">sequence_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">)))</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;aa_sequence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aa_frames</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;strand&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">strand</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;seq_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_length</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_length_nt</span>
+        <span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;seq_index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">))</span> <span class="c1"># index so we can match back data later</span>
+
+        <span class="c1"># find all ORFs longer than min_orf_length</span>
+        <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="n">matched_index</span> <span class="o">=</span> <span class="n">find_all_orfs</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">,</span> <span class="n">min_orf_length</span><span class="o">=</span><span class="n">min_orf_length</span><span class="p">)</span>
+
+        <span class="c1"># check for upstream ORF?</span>
+        <span class="c1"># get all sequence upstream of the start (M), and reverse it to find the distance to the nearest upstream stop codon</span>
+        <span class="n">full_seq_matched</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sequence_df</span><span class="p">[</span><span class="s1">&#39;aa_sequence&#39;</span><span class="p">][</span><span class="n">matched_index</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+        <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">orf_length</span> <span class="o">=</span> <span class="n">add_upstream_aas</span><span class="p">(</span><span class="n">full_seq_matched</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span><span class="n">start_sites</span><span class="p">,</span><span class="n">orf_sequence</span><span class="p">,</span><span class="n">orf_length</span><span class="p">,</span><span class="n">min_upstream_length</span> <span class="o">=</span> <span class="n">min_upstream_length</span><span class="p">)</span>
+
+        <span class="c1"># filter data by minimum orf length</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">orf_length</span> <span class="o">&gt;=</span> <span class="n">min_orf_length</span>
+        <span class="n">start_sites</span><span class="p">,</span><span class="n">stop_sites</span><span class="p">,</span><span class="n">orf_sequence</span><span class="p">,</span><span class="n">last_aa_is_stop</span><span class="p">,</span><span class="n">orf_length</span><span class="p">,</span><span class="n">matched_index</span><span class="o">=</span><span class="n">filter_objects</span><span class="p">(</span><span class="n">keep</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span><span class="n">stop_sites</span><span class="p">,</span><span class="n">orf_sequence</span><span class="p">,</span><span class="n">last_aa_is_stop</span><span class="p">,</span><span class="n">orf_length</span><span class="p">,</span><span class="n">matched_index</span><span class="p">)</span>
+
+        <span class="c1"># make DataFrame of ORF data</span>
+        <span class="n">orf_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">)))</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;seq_index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">matched_index</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_sequence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">orf_sequence</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_sites</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stop_sites</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">orf_length</span>
+        <span class="c1"># combine with sequence data from above</span>
+        <span class="n">orf_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">sequence_df</span><span class="p">,</span><span class="n">orf_df</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="s1">&#39;seq_index&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
+        <span class="n">orf_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;seq_index&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+
+        <span class="c1"># convert aa indices to nt-based indices</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site_nt&#39;</span><span class="p">],</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site_nt&#39;</span><span class="p">],</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;utr3_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">],</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">],</span><span class="n">last_aa_is_stop</span><span class="p">)</span>
+
+        <span class="c1"># check first and last AA</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_first_aa</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">,</span><span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
+        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;isoform_number&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unique_number_from_list</span><span class="p">(</span><span class="n">orf_df</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="c1"># add ORF classification</span>
+    <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_orf_classification</span><span class="p">(</span><span class="n">orf_df</span><span class="p">)</span>
+    <span class="c1"># Generate ids for writing to fasta</span>
+    <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&gt;&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">id</span> <span class="o">+</span> <span class="s1">&#39;.orf&#39;</span> <span class="o">+</span>  <span class="n">orf_df</span><span class="o">.</span><span class="n">isoform_number</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span>  <span class="n">orf_df</span><span class="o">.</span><span class="n">orf_class</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">start_site_nt</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">stop_site_nt</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; strand:&#39;</span> <span class="o">+</span>  <span class="n">orf_df</span><span class="o">.</span><span class="n">strand</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">orf_df</span></div>
+
+<span class="k">def</span> <span class="nf">translate_all_frames</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    translate nt sequences into all 3 frames</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequences : list</span>
+<span class="sd">        list of nucleotide sequences</span>
+<span class="sd">    both_strands : bool</span>
+<span class="sd">        translate both strands?</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">        return ids, aa_seq_by_frame, frame, strand, seq_length_nt, seq_length</span>
+
+<span class="sd">    -------</span>
+<span class="sd">    objects :</span>
+<span class="sd">        filtered objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create all frame translations of nt sequence</span>
+    <span class="n">aa_seq_by_frame</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seq_length_nt</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">seq_string</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
+
+        <span class="n">nucleotide_seq</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">)</span>
+        <span class="n">non_ATGC</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nucleotide_seq</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">nucleotide_seq</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">nucleotide_seq</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">nucleotide_seq</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;G&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">nucleotide_seq</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">))</span>
+        <span class="n">skip</span> <span class="o">=</span> <span class="n">non_ATGC</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">skip</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">reading_frame</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+
+                <span class="n">aa_seq_by_frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="n">reading_frame</span><span class="p">:]))</span><span class="o">.</span><span class="n">translate</span><span class="p">()))</span>
+                <span class="n">frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reading_frame</span><span class="p">)</span>
+                <span class="n">seq_length_nt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">)))</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">both_strands</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="c1"># translate reverse compliment</span>
+                    <span class="n">aa_seq_by_frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">))</span><span class="o">.</span><span class="n">complement</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">))[</span><span class="n">reading_frame</span><span class="p">:])</span><span class="o">.</span><span class="n">translate</span><span class="p">()))</span>
+                    <span class="n">frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reading_frame</span><span class="p">)</span>
+                    <span class="n">seq_length_nt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">)))</span>
+                    <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skipping &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;. Found &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">non_ATGC</span><span class="p">)</span> <span class="o">+</span>  <span class="s2">&quot; non-ACGT characters.&quot;</span><span class="p">)</span>
+            <span class="n">seq_string</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="n">seq_length_nt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seq_length_nt</span><span class="p">)</span>
+    <span class="n">aa_seq_by_frame</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">aa_seq_by_frame</span><span class="p">)</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">both_strands</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">strand</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="s1">&#39;+&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aa_seq_by_frame</span><span class="p">))])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">strand</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s1">&#39;+&#39;</span><span class="p">,</span><span class="s1">&#39;-&#39;</span><span class="p">])</span> <span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">seq_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">aa_seq_by_frame</span><span class="p">])</span>
+
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">aa_seq_by_frame</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">seq_length</span>
+
+<span class="k">def</span> <span class="nf">find_longest_orfs</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">):</span>
+    <span class="n">start_sites</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">stop_sites</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">orf_sequence</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">aa_seq</span> <span class="ow">in</span> <span class="n">aa_frames</span><span class="p">:</span>
+
+        <span class="n">max_start</span><span class="p">,</span><span class="n">max_end</span> <span class="o">=</span> <span class="n">orf_start_stop_from_aa</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">)</span>
+        <span class="c1"># if returning all &gt; 100AA</span>
+
+        <span class="n">start_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_start</span><span class="p">)</span>
+        <span class="n">stop_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_end</span><span class="p">)</span>
+
+        <span class="c1"># extract orf sequence</span>
+        <span class="n">orf_sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">[</span><span class="n">max_start</span><span class="p">:</span><span class="n">max_end</span><span class="p">])</span>
+
+    <span class="n">orf_sequence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">)</span>
+
+    <span class="c1"># check if the last AA is a stop (*) and trim it if neccessary</span>
+    <span class="n">last_aa_is_stop</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">]</span>
+    <span class="n">orf_sequence</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]]</span>
+
+    <span class="n">orf_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">])</span>
+
+    <span class="c1"># add 1 to convert pythonic index to normal-person index...</span>
+    <span class="n">start_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_sites</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">stop_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stop_sites</span><span class="p">)</span>
+    <span class="n">last_aa_is_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">last_aa_is_stop</span>
+
+<span class="k">def</span> <span class="nf">orf_start_stop_from_aa</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find locations of the start (M) and stop (*) codons that produce the longest ORF</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    aa_seq : str</span>
+<span class="sd">        amino acid sequence</span>
+<span class="sd">    max_only : bool</span>
+<span class="sd">        Only return that start and stop locations of the longest ORF</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    start_loc : int</span>
+<span class="sd">        start location</span>
+<span class="sd">    end_loc : int</span>
+<span class="sd">        end location</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    orf_start_stop_from_aa(&quot;META*&quot;)</span>
+<span class="sd">    orf_start_stop_from_aa(&quot;META*MEATBORF*&quot;)</span>
+<span class="sd">    orf_start_stop_from_aa(&quot;META*MEATBORF&quot;)</span>
+<span class="sd">    orf_start_stop_from_aa(&quot;MEATBORF&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># find all M</span>
+    <span class="k">if</span> <span class="n">aa_seq</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">start_locs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">end_locs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">M_locations</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">span</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="n">aa_seq</span><span class="p">)]</span>
+        <span class="n">last_end</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">M_locations</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="n">last_end</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">stop_location</span> <span class="o">=</span> <span class="n">find_next_stop</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+                <span class="n">start_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">end_locs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stop_location</span><span class="p">)</span>
+                <span class="n">last_end</span> <span class="o">=</span> <span class="n">stop_location</span>
+        <span class="c1"># if returning all &gt; 100AA</span>
+        <span class="c1"># find the start/end of the longest ORF</span>
+        <span class="k">if</span> <span class="n">max_only</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">max_start</span><span class="p">,</span><span class="n">max_end</span> <span class="o">=</span> <span class="n">find_max_orf_index</span><span class="p">(</span><span class="n">start_locs</span><span class="p">,</span> <span class="n">end_locs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">max_start</span><span class="p">,</span> <span class="n">max_end</span> <span class="o">=</span> <span class="n">start_locs</span><span class="p">,</span><span class="n">end_locs</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">max_start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_end</span> <span class="o">=</span> <span class="n">find_next_stop</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="n">max_start</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">max_start</span><span class="p">,</span><span class="n">max_end</span>
+
+<span class="k">def</span> <span class="nf">find_next_stop</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="n">start_loc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find location of the next stop codon (*) after the start location.</span>
+<span class="sd">    Return string length if no stop codon is found.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    aa_seq : str</span>
+<span class="sd">        amino acid sequence</span>
+<span class="sd">    start_loc : int</span>
+<span class="sd">        start location</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    end_loc : int</span>
+<span class="sd">        location of the next stop codon, or length of string if none is found</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    find_next_stop(&quot;AAAMBBB*CCC*&quot;, 4)</span>
+<span class="sd">    find_next_stop(&quot;AAAMBBBCCC&quot;, 4)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stop_codon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">[</span><span class="n">start_loc</span><span class="p">:],</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stop_codon</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">stop_codon</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stop_codon</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">end_loc</span> <span class="o">=</span> <span class="n">stop_codon</span> <span class="o">+</span> <span class="n">start_loc</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">end_loc</span>
+
+<span class="k">def</span> <span class="nf">find_max_orf_index</span><span class="p">(</span><span class="n">start_locs</span><span class="p">,</span> <span class="n">end_locs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given sets of start and end locations, return the set with the largest difference</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    start_locs : np.array</span>
+<span class="sd">        start locations</span>
+<span class="sd">    end_locs : np.array</span>
+<span class="sd">        end locations</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    start_loc : int</span>
+<span class="sd">        start location</span>
+<span class="sd">    end_loc : int</span>
+<span class="sd">        end location</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    find_max_orf_index(start_locs = [0,100], end_locs = [1000, 200])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">orf_lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">orf_lengths</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">max_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">orf_lengths</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">orf_lengths</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">)[</span><span class="n">max_index</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)[</span><span class="n">max_index</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">add_upstream_aas</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span><span class="n">start_sites</span><span class="p">,</span><span class="n">orf_sequence</span><span class="p">,</span><span class="n">orf_length</span><span class="p">,</span> <span class="n">min_upstream_length</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the upstream AAs onto orf sequences</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    aa_frames : list</span>
+<span class="sd">        list of translated AA sequences (full length)</span>
+<span class="sd">    start_sites : list</span>
+<span class="sd">        list of start sites</span>
+<span class="sd">    stop_sites : list</span>
+<span class="sd">        list of stop sites</span>
+<span class="sd">    orf_sequence : list</span>
+<span class="sd">        list of ORF sequences (i.e. from start to stop codon)</span>
+<span class="sd">    orf_length : list</span>
+<span class="sd">        list of orf lengths</span>
+<span class="sd">    min_upstream_length : int</span>
+<span class="sd">        minimum length of upstream sequence for it to be added</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    orf_sequence : list</span>
+<span class="sd">        list of ORF sequences including upstream AA where appropriate</span>
+<span class="sd">    start_sites : list</span>
+<span class="sd">        list of start sites</span>
+<span class="sd">    orf_length : list</span>
+<span class="sd">        list of orf lengths</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">first_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">),</span> <span class="s2">&quot;*&quot;</span><span class="p">)</span>
+    <span class="n">add_upstream</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">first_stop</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_stop</span> <span class="o">==</span> <span class="p">(</span><span class="n">stop_sites</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">start_sites</span> <span class="o">&gt;</span> <span class="n">min_upstream_length</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">add_upstream</span><span class="p">):</span>
+        <span class="c1"># object so no sequence truncation</span>
+        <span class="n">orf_sequence_withup</span> <span class="o">=</span> <span class="n">orf_sequence</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;object&#39;</span><span class="p">)</span>
+        <span class="n">orf_length_withup</span> <span class="o">=</span> <span class="n">orf_length</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">start_sites_withup</span> <span class="o">=</span> <span class="n">start_sites</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">orf_with_upstream</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">[</span><span class="n">add_upstream</span><span class="p">],</span> <span class="n">stop_sites</span><span class="p">[</span><span class="n">add_upstream</span><span class="p">])]</span>
+        <span class="c1"># check if the last AA is a stop (*) and trim it if neccessary</span>
+        <span class="n">orf_with_upstream</span> <span class="o">=</span> <span class="p">[</span><span class="n">replace_last_stop</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_with_upstream</span><span class="p">]</span>
+        <span class="n">orf_sequence_withup</span><span class="p">[</span><span class="n">add_upstream</span><span class="p">]</span> <span class="o">=</span> <span class="n">orf_with_upstream</span>
+        <span class="n">start_sites_withup</span><span class="p">[</span><span class="n">add_upstream</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1">#set to 1 for upstream ORFs</span>
+        <span class="n">orf_length_withup</span><span class="p">[</span><span class="n">add_upstream</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence_withup</span><span class="p">[</span><span class="n">add_upstream</span><span class="p">]])</span>
+
+        <span class="n">orf_sequence_withup</span> <span class="o">=</span> <span class="n">orf_sequence_withup</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">orf_sequence_withup</span><span class="p">,</span> <span class="n">start_sites_withup</span><span class="p">,</span> <span class="n">orf_length_withup</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">orf_length</span>
+
+<span class="k">def</span> <span class="nf">replace_last_stop</span><span class="p">(</span><span class="n">orf_seq</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    replace * with nothing as the final character in in string</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    orf_seq : str</span>
+<span class="sd">        orf_sequence</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    orf_seq : str</span>
+<span class="sd">        orf_sequence</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    replace_last_stop(&quot;META*&quot;)</span>
+<span class="sd">    replace_last_stop(&quot;METAL&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">orf_seq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+        <span class="n">replaced_orf_seq</span> <span class="o">=</span> <span class="n">orf_seq</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">replaced_orf_seq</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">orf_seq</span>
+
+<span class="k">def</span> <span class="nf">filter_objects</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="o">*</span><span class="n">objects</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    filter multiple objects</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filter : list</span>
+<span class="sd">        boolean list</span>
+<span class="sd">    objects :</span>
+<span class="sd">        objects to filter</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    objects :</span>
+<span class="sd">        filtered objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_objects</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">:</span>
+        <span class="n">new_objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">o</span><span class="p">[</span><span class="nb">filter</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">new_objects</span>
+
+<span class="k">def</span> <span class="nf">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert AA locations to nt locations</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    start_sites : list</span>
+<span class="sd">        list of start sites</span>
+<span class="sd">    stop_sites : list</span>
+<span class="sd">        list of stop sites</span>
+<span class="sd">    seq_length_nt : list</span>
+<span class="sd">        list of sequence lengths (in nt)</span>
+<span class="sd">    orf_length : list</span>
+<span class="sd">        list of orf lengths</span>
+<span class="sd">    frame : list</span>
+<span class="sd">        list of frames</span>
+<span class="sd">    last_aa_is_stop : list</span>
+<span class="sd">        list of bool values for if the stop site refers to the stop codon (*) or not.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    start_site_nt : list</span>
+<span class="sd">        list of start sites (in nt)</span>
+<span class="sd">    stop_site_nt : list</span>
+<span class="sd">        list of stop sites (in nt)</span>
+<span class="sd">    utr3_length : list</span>
+<span class="sd">        list of 3&#39; utr lengths (in nt)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">start_site_nt</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_sites</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">frame</span>
+    <span class="c1"># only give a stop_site_nt location if the last AA is * //// NOT ANYMORE</span>
+    <span class="c1"># using NAN values gives issues when trying to convert to int</span>
+    <span class="n">stop_site_nt</span> <span class="o">=</span> <span class="n">orf_length</span><span class="o">*</span><span class="mi">3</span> <span class="o">+</span> <span class="n">start_site_nt</span> <span class="o">+</span> <span class="mi">3</span>  <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="n">utr3_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">start_site_nt</span><span class="p">))</span>
+    <span class="n">utr3_length</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span>  <span class="o">=</span> <span class="n">seq_length_nt</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span> <span class="o">-</span> <span class="n">stop_site_nt</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span>
+    <span class="n">utr3_length</span> <span class="o">=</span> <span class="n">utr3_length</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">start_site_nt</span><span class="p">,</span><span class="n">stop_site_nt</span><span class="p">,</span><span class="n">utr3_length</span>
+
+<span class="k">def</span> <span class="nf">check_first_aa</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_codon</span><span class="o">=</span><span class="s1">&#39;M&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check that the first AA in a list of ORF sequences is M.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    orf_sequence :</span>
+<span class="sd">        list of orf sequences</span>
+<span class="sd">    start_codon :</span>
+<span class="sd">        character representing the start codon</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    first_MET : numpy array</span>
+<span class="sd">        array matching orf_sequence with either the start codon or &#39;ALT&#39;</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    check_first_aa([&#39;META&#39;,&#39;ETAM&#39;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">first_aa</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">]</span>
+    <span class="n">first_MET</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">first_aa</span><span class="p">)</span> <span class="o">==</span> <span class="n">start_codon</span><span class="p">,</span> <span class="n">start_codon</span><span class="p">,</span> <span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">first_MET</span>
+
+<span class="k">def</span> <span class="nf">find_all_orfs</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">,</span> <span class="n">min_orf_length</span><span class="p">):</span>
+    <span class="n">matched_index</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">start_sites</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">stop_sites</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">orf_sequence</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aa_frames</span><span class="p">)):</span>
+
+        <span class="n">aa_seq</span> <span class="o">=</span> <span class="n">aa_frames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">start_locs</span><span class="p">,</span><span class="n">end_locs</span> <span class="o">=</span> <span class="n">orf_start_stop_from_aa</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="n">max_only</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># if returning all &gt; 100AA</span>
+        <span class="n">orf_lengths</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">above_min_length</span> <span class="o">=</span> <span class="n">orf_lengths</span> <span class="o">&gt;=</span> <span class="n">min_orf_length</span>
+        <span class="n">orf_lengths</span> <span class="o">=</span> <span class="n">orf_lengths</span><span class="p">[</span><span class="n">above_min_length</span><span class="p">]</span>
+        <span class="n">max_start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">)[</span><span class="n">above_min_length</span><span class="p">]</span>
+        <span class="n">max_end</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)[</span><span class="n">above_min_length</span><span class="p">]</span>
+        <span class="n">rep_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">orf_lengths</span><span class="p">))</span>
+
+        <span class="n">start_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_start</span><span class="p">)</span>
+        <span class="n">stop_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_end</span><span class="p">)</span>
+        <span class="n">matched_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rep_index</span><span class="p">)</span>
+
+        <span class="c1"># extract orf sequence</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">max_start</span><span class="p">)</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">orf_sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">max_start</span><span class="p">):</span><span class="nb">int</span><span class="p">(</span><span class="n">max_end</span><span class="p">)])</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">max_start</span><span class="p">)</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">orf_sequence</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">aa_seq</span><span class="p">[</span><span class="n">sta</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="k">for</span> <span class="n">sta</span><span class="p">,</span><span class="n">end</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">max_start</span><span class="p">,</span> <span class="n">max_end</span><span class="p">)])</span>
+
+    <span class="n">start_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">start_sites</span><span class="p">)</span>
+    <span class="n">stop_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">stop_sites</span><span class="p">)</span>
+    <span class="n">matched_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">matched_index</span><span class="p">)</span>
+    <span class="n">orf_sequence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">)</span>
+
+    <span class="c1"># check if the last AA is a stop (*) and trim it if neccessary</span>
+    <span class="n">last_aa_is_stop</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">]</span>
+    <span class="n">orf_sequence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">replace_last_stop</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">])</span>
+
+    <span class="n">orf_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">orf_sequence</span><span class="p">])</span>
+
+    <span class="c1"># add 1 to convert pythonic index to normal-person index...</span>
+    <span class="n">start_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_sites</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">stop_sites</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stop_sites</span><span class="p">)</span>
+    <span class="n">last_aa_is_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="n">matched_index</span>
+
+<span class="c1"># return location of the next stop in a sequence, or return the length if no stop found</span>
+
+<span class="k">def</span> <span class="nf">unique_number_from_list</span><span class="p">(</span><span class="n">input_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Produce a list of integers corresponding to the number of times an element in the input list has been observed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_list : list</span>
+<span class="sd">        list of values</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    occurrence : list</span>
+<span class="sd">        integer list</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    unique_number_from_list([&#39;a&#39;,&#39;a&#39;,&#39;b&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;])</span>
+<span class="sd">    unique_number_from_list([&#39;a&#39;,&#39;b&#39;,&#39;c&#39;])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dups</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">occurrence</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dups</span><span class="p">:</span>
+            <span class="c1"># Store index of first occurrence and occurrence value</span>
+            <span class="n">dups</span><span class="p">[</span><span class="n">val</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Increment occurrence value,</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dups</span><span class="p">[</span><span class="n">val</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Use stored occurrence value</span>
+        <span class="c1">#mylist[i] += str(dups[val][1])</span>
+        <span class="n">occurrence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dups</span><span class="p">[</span><span class="n">val</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">occurrence</span>
+
+<span class="k">def</span> <span class="nf">add_orf_classification</span><span class="p">(</span><span class="n">orf_df</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate ORF type classification from an orf_df.</span>
+<span class="sd">    complete: Complete CDS - contains start codon and stop codon</span>
+<span class="sd">    incomplete_5prime: Incomplete CDS - has stop codon, but start of sequence indicates that an upstream start codon may be missing.</span>
+<span class="sd">    incomplete_3prime: Incomplete CDS - has start codon, but no stop codon.</span>
+<span class="sd">    incomplete: Incomplete CDS - Both start codon and stop codon not found.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    orf_df : DataFrame</span>
+<span class="sd">        orf_df DataFrame</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    orf_class : np.array</span>
+<span class="sd">        numpy array of orf classifications</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">orf_class</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">)</span>
+
+    <span class="n">orf_class</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;M&quot;</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;STOP&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;complete&#39;</span> <span class="c1"># complete CDS</span>
+    <span class="n">orf_class</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;M&quot;</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;STOP&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;incomplete_5prime&#39;</span> <span class="c1"># incomplete_5prime</span>
+    <span class="n">orf_class</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;M&quot;</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;STOP&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;incomplete_3prime&#39;</span> <span class="c1"># incomplete_3prime</span>
+    <span class="n">orf_class</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;M&quot;</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;STOP&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;incomplete&#39;</span> <span class="c1"># incomplete</span>
+
+    <span class="k">return</span> <span class="n">orf_class</span>
+
+<span class="k">def</span> <span class="nf">read_fasta</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    read in a fasta file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fasta_file : str</span>
+<span class="sd">        path to fasta file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sequences :</span>
+<span class="sd">        SeqIO records of each sequence</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_sequences</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># read in fasta file</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">SeqIO</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">,</span> <span class="s1">&#39;fasta&#39;</span><span class="p">):</span>
+        <span class="n">all_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">all_sequences</span>
+
+<span class="k">def</span> <span class="nf">check_things</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+        <span class="n">checked</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Overwrite file? y/n&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">checked</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;overwriting...&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please supply an alternative output file name and run again.&#39;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;Quitting borf&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">write_orf_data</span><span class="p">(</span><span class="n">orf_df</span><span class="p">,</span> <span class="n">file_out</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write ORF sequence metadata to txt file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    orf_df : DataFrame</span>
+<span class="sd">        orf_df DataFrame</span>
+<span class="sd">    file_out : str</span>
+<span class="sd">        path to file to write txt file</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">orf_df</span> <span class="o">=</span> <span class="n">orf_df</span><span class="p">[[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span><span class="s1">&#39;frame&#39;</span><span class="p">,</span><span class="s1">&#39;strand&#39;</span><span class="p">,</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;start_site_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_site_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;utr3_length&#39;</span><span class="p">,</span> <span class="s1">&#39;start_site&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_site&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_length&#39;</span><span class="p">,</span> <span class="s1">&#39;first_MET&#39;</span><span class="p">,</span> <span class="s1">&#39;final_stop&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_class&#39;</span><span class="p">]]</span>
+
+    <span class="n">orf_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;orf_id&#39;</span><span class="p">,</span> <span class="s1">&#39;transcript_id&#39;</span><span class="p">,</span><span class="s1">&#39;frame&#39;</span><span class="p">,</span><span class="s1">&#39;strand&#39;</span><span class="p">,</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;start_site_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_site_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;utr3_length_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;start_site_aa&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_site_aa&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_length_aa&#39;</span><span class="p">,</span> <span class="s1">&#39;first_aa_MET&#39;</span><span class="p">,</span> <span class="s1">&#39;final_aa_stop&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_class&#39;</span><span class="p">]</span>
+
+    <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+
+<span class="k">def</span> <span class="nf">write_orf_fasta</span><span class="p">(</span><span class="n">orf_df</span><span class="p">,</span> <span class="n">file_out</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write ORF sequences to a fasta file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    orf_df : DataFrame</span>
+<span class="sd">        orf_df DataFrame</span>
+<span class="sd">    file_out : str</span>
+<span class="sd">        path to file to write fasta sequences</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check if file exists</span>
+    <span class="c1">#</span>
+
+    <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">,</span><span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Beth Signal
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
