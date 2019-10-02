@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>borf.get_orfs &mdash; borf 0.post40+ga86b0a8 documentation</title>
+  <title>borf.get_orfs &mdash; borf 0.post41+g838b6f1 documentation</title>
   
 
   
@@ -61,7 +61,7 @@
             
             
               <div class="version">
-                0.post40+ga86b0a8
+                0.post41+g838b6f1
               </div>
             
           
@@ -207,12 +207,20 @@
         <span class="n">keep</span> <span class="o">=</span> <span class="n">orf_length</span> <span class="o">&gt;=</span> <span class="n">min_orf_length</span>
         <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="n">orf_length</span> <span class="o">=</span> <span class="n">filter_objects</span><span class="p">(</span><span class="n">keep</span><span class="p">,</span> <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_sequence</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">)</span>
 
-        <span class="c1"># convert aa indices to nt-based indices</span>
-        <span class="n">start_site_nt</span><span class="p">,</span> <span class="n">stop_site_nt</span><span class="p">,</span> <span class="n">utr3_length</span> <span class="o">=</span> <span class="n">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">)</span>
+        <span class="c1"># only run next steps if there are ORFs</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># convert aa indices to nt-based indices</span>
+            <span class="n">start_site_nt</span><span class="p">,</span> <span class="n">stop_site_nt</span><span class="p">,</span> <span class="n">utr3_length</span> <span class="o">=</span> <span class="n">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">last_aa_is_stop</span><span class="p">)</span>
 
-        <span class="c1"># check first and last AA</span>
-        <span class="n">first_MET</span> <span class="o">=</span> <span class="n">check_first_aa</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">)</span>
-        <span class="n">final_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">,</span> <span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
+            <span class="c1"># check first and last AA</span>
+            <span class="n">first_MET</span> <span class="o">=</span> <span class="n">check_first_aa</span><span class="p">(</span><span class="n">orf_sequence</span><span class="p">)</span>
+            <span class="n">final_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">,</span> <span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start_site_nt</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">stop_site_nt</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">utr3_length</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">first_MET</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">final_stop</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># collect all and format as pandas DataFrame</span>
         <span class="n">orf_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">start_sites</span><span class="p">)))</span>
@@ -277,12 +285,21 @@
         <span class="n">orf_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">sequence_df</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">,</span>  <span class="n">on</span><span class="o">=</span><span class="s1">&#39;seq_index&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
         <span class="n">orf_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;seq_index&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="c1"># convert aa indices to nt-based indices</span>
-        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site_nt&#39;</span><span class="p">],</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site_nt&#39;</span><span class="p">],</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;utr3_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">],</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">],</span> <span class="n">last_aa_is_stop</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># convert aa indices to nt-based indices</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site_nt&#39;</span><span class="p">],</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site_nt&#39;</span><span class="p">],</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;utr3_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_start_stop_to_nt</span><span class="p">(</span><span class="n">start_sites</span><span class="p">,</span> <span class="n">stop_sites</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;seq_length_nt&#39;</span><span class="p">],</span> <span class="n">orf_length</span><span class="p">,</span> <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">],</span> <span class="n">last_aa_is_stop</span><span class="p">)</span>
+            <span class="c1"># check first and last AA</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_first_aa</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">,</span> <span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># convert aa indices to nt-based indices</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;start_site_nt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;stop_site_nt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;utr3_length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># check first and last AA</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="c1"># check first and last AA</span>
-        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;first_MET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_first_aa</span><span class="p">(</span><span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
-        <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;final_stop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">,</span> <span class="s1">&#39;ALT&#39;</span><span class="p">)</span>
         <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;isoform_number&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unique_number_from_list</span><span class="p">(</span><span class="n">orf_df</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
     <span class="c1"># add ORF classification</span>
