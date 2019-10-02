@@ -52,12 +52,20 @@ def get_orfs(fasta_file, *, both_strands=False, min_orf_length=100,
         keep = orf_length >= min_orf_length
         aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length = filter_objects(keep, aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length)
 
-        # convert aa indices to nt-based indices
-        start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
+        # only run next steps if there are ORFs
+        if np.any(keep) is True:
+            # convert aa indices to nt-based indices
+            start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
 
-        # check first and last AA
-        first_MET = check_first_aa(orf_sequence)
-        final_stop = np.where(last_aa_is_stop, 'STOP', 'ALT')
+            # check first and last AA
+            first_MET = check_first_aa(orf_sequence)
+            final_stop = np.where(last_aa_is_stop, 'STOP', 'ALT')
+        else:
+            start_site_nt = []
+            stop_site_nt = []
+            utr3_length = []
+            first_MET = []
+            final_stop = []
 
         # collect all and format as pandas DataFrame
         orf_df = pd.DataFrame(index=range(len(start_sites)))
@@ -122,12 +130,21 @@ def get_orfs(fasta_file, *, both_strands=False, min_orf_length=100,
         orf_df = pd.merge(sequence_df, orf_df,  on='seq_index', how='right')
         orf_df.drop('seq_index', axis=1, inplace=True)
 
-        # convert aa indices to nt-based indices
-        orf_df['start_site_nt'], orf_df['stop_site_nt'], orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'], last_aa_is_stop)
+        if np.any(keep) is True:
+            # convert aa indices to nt-based indices
+            orf_df['start_site_nt'], orf_df['stop_site_nt'], orf_df['utr3_length'] = convert_start_stop_to_nt(start_sites, stop_sites, orf_df['seq_length_nt'], orf_length, orf_df['frame'], last_aa_is_stop)
+            # check first and last AA
+            orf_df['first_MET'] = check_first_aa(orf_df['orf_sequence'])
+            orf_df['final_stop'] = np.where(last_aa_is_stop, 'STOP', 'ALT')
+        else:
+            # convert aa indices to nt-based indices
+            orf_df['start_site_nt'] = []
+            orf_df['stop_site_nt'] = []
+            orf_df['utr3_length'] = []
+            # check first and last AA
+            orf_df['first_MET'] = []
+            orf_df['final_stop'] = []
 
-        # check first and last AA
-        orf_df['first_MET'] = check_first_aa(orf_df['orf_sequence'])
-        orf_df['final_stop'] = np.where(last_aa_is_stop, 'STOP', 'ALT')
         orf_df['isoform_number'] = unique_number_from_list(orf_df.id)
 
     # add ORF classification
