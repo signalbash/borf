@@ -1,10 +1,10 @@
 
 '''borf.borf: for running borf'''
 
-__version__ = '1.0.0'
 
 import argparse
 import os
+import sys
 from .get_orfs import get_orfs, write_orf_fasta, write_orf_data
 
 
