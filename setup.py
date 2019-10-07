@@ -60,6 +60,7 @@ setup(
     },
     install_requires=requirements,
     license="MIT",
+    long_description_content_type="text/x-rst",
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Natural Language :: English',
