@@ -21,6 +21,16 @@ Installation
 ------------
 .. code-block:: console
 
-        git clone https://github.com/betsig/borf.git
-        cd borf
-        python setup.py install
+        pip install borf
+
+
+Usage
+------------
+For basic usage, run borf with an input fasta formatted file as the first argument.
+
+.. code-block:: console
+
+        borf input.fa
+
+
+For a more detailed guide on usage, please see the wiki https://github.com/betsig/borf/wiki
