@@ -5,15 +5,18 @@ import re as re
 import pandas as pd
 import skbio as skbio
 from Bio import SeqIO
+import os
 
 
-def get_orfs(fasta_file, *, both_strands=False, min_orf_length=100,
+def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
              all_orfs=False, min_upstream_length=50):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
     Parameters
     ----------
+    all_sequences :
+        sequence object
     fasta_file : str
         path to the fasta file to predict orfs for
     both_strands : bool
@@ -33,7 +36,7 @@ def get_orfs(fasta_file, *, both_strands=False, min_orf_length=100,
         DataFrame containing predicted ORF data and sequences
 
     """
-    all_sequences = read_fasta(fasta_file)
+    # all_sequences = read_fasta(fasta_file)
     # create all frame translations of nt sequence
     ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
 
@@ -700,7 +703,16 @@ def write_orf_data(orf_df, file_out):
 
     orf_df.columns = ['orf_id', 'transcript_id', 'frame', 'strand', 'seq_length_nt', 'start_site_nt', 'stop_site_nt', 'utr3_length_nt', 'start_site_aa', 'stop_site_aa', 'orf_length_aa', 'first_aa_MET', 'final_aa_stop', 'orf_class']
 
-    orf_df.to_csv(file_out, index=False, sep='\t')
+    #orf_df.to_csv(file_out, index=False, sep='\t')
+
+    if not os.path.isfile(file_out):
+        orf_df.to_csv(file_out, mode='a', index=False, sep='\t')
+    elif len(orf_df.columns) != len(pd.read_csv(file_out, nrows=1, sep='\t').columns):
+        raise Exception("Columns do not match!! ORF data has " + str(len(orf_df.columns)) + " columns. Output txt file has " + str(len(pd.read_csv(file_out, nrows=1, sep='\t').columns)) + " columns.")
+    elif not (orf_df.columns == pd.read_csv(file_out, nrows=1, sep='\t').columns).all():
+        raise Exception("Columns and column order of ORF data and txt file do not match!!")
+    else:
+        orf_df.to_csv(file_out, mode='a', index=False, sep='\t', header=False)
 
 
 def write_orf_fasta(orf_df, file_out):
@@ -715,7 +727,32 @@ def write_orf_fasta(orf_df, file_out):
         path to file to write fasta sequences
 
     """
-    # check if file exists
-    #
 
-    orf_df.to_csv(file_out, index=False, sep='\n', header=False, columns=['fasta_id', 'orf_sequence'])
+    orf_df.to_csv(file_out, mode = 'a', index=False, sep='\n', header=False, columns=['fasta_id', 'orf_sequence'])
+
+def batch_iterator(iterator, batch_size):
+    """Returns lists of length batch_size.
+
+    This can be used on any iterator, for example to batch up
+    SeqRecord objects from Bio.SeqIO.parse(...), or to batch
+    Alignment objects from Bio.AlignIO.parse(...), or simply
+    lines from a file handle.
+
+    This is a generator function, and it returns lists of the
+    entries from the supplied iterator.  Each list will have
+    batch_size entries, although the final list may be shorter.
+    """
+    entry = True  # Make sure we loop once
+    while entry:
+        batch = []
+        while len(batch) < batch_size:
+            try:
+                entry = next(iterator)
+            except StopIteration:
+                entry = None
+            if entry is None:
+                # End of file
+                break
+            batch.append(entry)
+        if batch:
+            yield batch
