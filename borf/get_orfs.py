@@ -560,9 +560,12 @@ def find_all_orfs(aa_frames, min_orf_length):
 
         aa_seq = aa_frames[i]
         start_locs, end_locs = orf_start_stop_from_aa(aa_seq, max_only=False)
+        first_stop = np.char.find(aa_seq, '*')
         # if returning all > 100AA
+        # OR if potential upstream incomplete
         orf_lengths = (np.array(end_locs) - np.array(start_locs)) - 1
-        above_min_length = orf_lengths >= min_orf_length
+        above_min_length = np.logical_or(np.logical_or(orf_lengths >= min_orf_length, start_locs < first_stop), first_stop == -1)
+
         orf_lengths = orf_lengths[above_min_length]
         max_start = np.array(start_locs)[above_min_length]
         max_end = np.array(end_locs)[above_min_length]
