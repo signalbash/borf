@@ -2,9 +2,6 @@
 borf
 ===============================
 
-.. image:: https://img.shields.io/travis/betsig/borf.svg
-        :target: https://travis-ci.org/betsig/borf
-
 .. image:: https://img.shields.io/pypi/v/borf.svg
         :target: https://pypi.python.org/pypi/borf
 
@@ -12,10 +9,6 @@ borf
 **Better ORF predictions**
 
 Fast and flexible ORF prediction in python with appropriate defaults for *de novo* assembled transcripts.
-
-
-* Free software: 3-clause BSD license
-* Documentation: https://github.com/betsig/borf/wiki
 
 Installation
 ------------
