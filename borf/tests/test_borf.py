@@ -1,4 +1,6 @@
 import unittest
+import pandas as pd
+import numpy as np
 
 from borf.get_orfs import read_fasta
 from borf.get_orfs import find_next_stop
@@ -361,9 +363,7 @@ class TestConvertAANT(unittest.TestCase):
     def test_convert_stop_nt(self):
         sequences = read_fasta('test_data/test_frames.fa')
 
-        (ids, aa_frames, frame, strand,
-            seq_length_nt, seq_length =
-                translate_all_frames(sequences, both_strands=False))
+        ids, aa_frames, frame, strand,seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
         orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(
             aa_frames)
         # filter data by minimum orf length
@@ -374,6 +374,21 @@ class TestConvertAANT(unittest.TestCase):
         start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(
             start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
         self.assertTrue(np.all(stop_site_nt == np.array([21, 22, 23])))
+
+    def test_convert_stop_nt_3incomplete(self):
+        sequences = read_fasta('test_data/test_stopsitent.fa')
+
+        ids, aa_frames, frame, strand,seq_length_nt, seq_length = translate_all_frames(sequences, both_strands=False)
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
+        # filter data by minimum orf length
+        keep = orf_length >= 6
+        aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length = filter_objects(
+            keep, aa_frames, frame, strand, seq_length_nt, ids, seq_length, start_sites, stop_sites, orf_sequence, last_aa_is_stop, orf_length)
+
+        start_site_nt, stop_site_nt, utr3_length = convert_start_stop_to_nt(
+            start_sites, stop_sites, seq_length_nt, orf_length, frame, last_aa_is_stop)
+        self.assertTrue(np.all(stop_site_nt == seq_length_nt))
+
 
     def test_convert_utr_nt(self):
         sequences = read_fasta('test_data/test_frames.fa')
@@ -465,22 +480,26 @@ class TestFindAllORFs(unittest.TestCase):
     def test_find_multi_orfs(self):
         # tests that a length 3 tupple output, and each is the correct numpy
         # array type
-        aa_seqs = np.array(['MEATBALL*MEATBALLBEAR*', 'NOPE', 'MELMCAT'])
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(
-            aa_seqs, min_orf_length=5)
+        aa_seqs = np.array(['MEATBALL*MEATBALLBEAR*', '*NOPE', 'MELMCAT'])
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_seqs, min_orf_length=5)
 
-        self.assertTrue(np.all(orf_sequence == np.array(
-            ['MEATBALL', 'MEATBALLBEAR', 'MELMCAT'])))
+        self.assertTrue(np.all(orf_sequence == np.array(['MEATBALL', 'MEATBALLBEAR', 'MELMCAT'])))
 
     def test_find_multi_orfs_index(self):
         # tests that a length 3 tupple output, and each is the correct numpy
         # array type
-        aa_seqs = np.array(['MEATBALL*MEATBALLBEAR*', 'NOPE', 'MELMCAT'])
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(
-            aa_seqs, min_orf_length=5)
+        aa_seqs = np.array(['MEATBALL*MEATBALLBEAR*', '*NOPE', 'MELMCAT'])
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_seqs, min_orf_length=5)
 
         self.assertTrue(np.all(matched_index == np.array([0, 0, 2])))
 
+    def test_find_all_orfs_upstream_ic(self):
+        # tests that a length 3 tupple output, and each is the correct numpy
+        # array type
+        aa_seqs = np.array(['*NOPE', 'YES'])
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_seqs, min_orf_length=5)
+
+        self.assertTrue(np.all(orf_sequence == np.array(['YES'])))
 
 class TestAddOrfClass(unittest.TestCase):
 
@@ -550,7 +569,8 @@ class TestGetORFs(unittest.TestCase):
         expected['orf_class'] = 'complete'
         expected['fasta_id'] = '>Single_FA.orf1 complete:1-21 strand:+'
 
-        orf_df = get_orfs('test_data/test_getorfs.fa', min_orf_length=5)
+        all_sequences = read_fasta('test_data/test_getorfs.fa')
+        orf_df = get_orfs(all_sequences, min_orf_length=5)
 
         self.assertTrue(orf_df.equals(expected))
 
@@ -568,17 +588,17 @@ class TestGetORFs(unittest.TestCase):
         expected['stop_site'] = [7, 8]
         expected['orf_length'] = [6, 8]
         expected['start_site_nt'] = [1, 3]
-        expected['stop_site_nt'] = [21, 29]
+        expected['stop_site_nt'] = [21, 26]
         expected['utr3_length'] = [5, 0]
         expected['first_MET'] = ['M', 'ALT']
         expected['final_stop'] = ['STOP', 'ALT']
         expected['isoform_number'] = [1, 2]
         expected['orf_class'] = ['complete', 'incomplete']
         expected['fasta_id'] = ['>Single_FA.orf1 complete:1-21 strand:+',
-                                '>Single_FA.orf2 incomplete:3-29 strand:-']
+                                '>Single_FA.orf2 incomplete:3-26 strand:-']
 
-        orf_df = get_orfs('test_data/test_getorfs.fa', min_orf_length=5,
-                          both_strands=True, all_orfs=True)
+        all_sequences = read_fasta('test_data/test_getorfs.fa')
+        orf_df = get_orfs(all_sequences, min_orf_length=5, both_strands=True, all_orfs=True)
 
         self.assertTrue(orf_df.equals(expected))
 
