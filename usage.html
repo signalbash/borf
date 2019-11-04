@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Usage &mdash; borf 0.post51+gf51b0cf documentation</title>
+  <title>Usage &mdash; borf 1.1.post7+gd4b7809 documentation</title>
   
 
   
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                0.post51+gf51b0cf
+                1.1.post7+gd4b7809
               </div>
             
           
@@ -164,11 +164,13 @@
 </div>
 <dl class="function">
 <dt id="borf.get_orfs.get_orfs">
-<code class="sig-prename descclassname">borf.get_orfs.</code><code class="sig-name descname">get_orfs</code><span class="sig-paren">(</span><em class="sig-param">fasta_file</em>, <em class="sig-param">*</em>, <em class="sig-param">both_strands=False</em>, <em class="sig-param">min_orf_length=100</em>, <em class="sig-param">all_orfs=False</em>, <em class="sig-param">min_upstream_length=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/borf/get_orfs.html#get_orfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#borf.get_orfs.get_orfs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">borf.get_orfs.</code><code class="sig-name descname">get_orfs</code><span class="sig-paren">(</span><em class="sig-param">all_sequences</em>, <em class="sig-param">both_strands=False</em>, <em class="sig-param">min_orf_length=100</em>, <em class="sig-param">all_orfs=False</em>, <em class="sig-param">min_upstream_length=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/borf/get_orfs.html#get_orfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#borf.get_orfs.get_orfs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produce a pandas DataFrame of predicted ORFs from a fasta file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
+<dt><strong>all_sequences :</strong></dt><dd><p>sequence object</p>
+</dd>
 <dt><strong>fasta_file</strong><span class="classifier">str</span></dt><dd><p>path to the fasta file to predict orfs for</p>
 </dd>
 <dt><strong>both_strands</strong><span class="classifier">bool</span></dt><dd><p>Provide predictions for both strands? (i.e. reverse compliment).</p>

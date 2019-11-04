@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>borf.get_orfs &mdash; borf 0.post51+gf51b0cf documentation</title>
+  <title>borf.get_orfs &mdash; borf 1.1.post7+gd4b7809 documentation</title>
   
 
   
@@ -61,7 +61,7 @@
             
             
               <div class="version">
-                0.post51+gf51b0cf
+                1.1.post7+gd4b7809
               </div>
             
           
@@ -160,15 +160,18 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">skbio</span> <span class="k">as</span> <span class="nn">skbio</span>
 <span class="kn">from</span> <span class="nn">Bio</span> <span class="k">import</span> <span class="n">SeqIO</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
 
-<div class="viewcode-block" id="get_orfs"><a class="viewcode-back" href="../../usage.html#borf.get_orfs.get_orfs">[docs]</a><span class="k">def</span> <span class="nf">get_orfs</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">min_orf_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<div class="viewcode-block" id="get_orfs"><a class="viewcode-back" href="../../usage.html#borf.get_orfs.get_orfs">[docs]</a><span class="k">def</span> <span class="nf">get_orfs</span><span class="p">(</span><span class="n">all_sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">min_orf_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
              <span class="n">all_orfs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">min_upstream_length</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Produce a pandas DataFrame of predicted ORFs from a fasta file.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
+<span class="sd">    all_sequences :</span>
+<span class="sd">        sequence object</span>
 <span class="sd">    fasta_file : str</span>
 <span class="sd">        path to the fasta file to predict orfs for</span>
 <span class="sd">    both_strands : bool</span>
@@ -188,7 +191,7 @@
 <span class="sd">        DataFrame containing predicted ORF data and sequences</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">all_sequences</span> <span class="o">=</span> <span class="n">read_fasta</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+    <span class="c1"># all_sequences = read_fasta(fasta_file)</span>
     <span class="c1"># create all frame translations of nt sequence</span>
     <span class="n">ids</span><span class="p">,</span> <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">seq_length</span> <span class="o">=</span> <span class="n">translate_all_frames</span><span class="p">(</span><span class="n">all_sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="n">both_strands</span><span class="p">)</span>
 
@@ -668,6 +671,7 @@
     <span class="c1"># only give a stop_site_nt location if the last AA is * //// NOT ANYMORE</span>
     <span class="c1"># using NAN values gives issues when trying to convert to int</span>
     <span class="n">stop_site_nt</span> <span class="o">=</span> <span class="n">orf_length</span><span class="o">*</span><span class="mi">3</span> <span class="o">+</span> <span class="n">start_site_nt</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">stop_site_nt</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">)]</span> <span class="o">=</span> <span class="n">seq_length_nt</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">last_aa_is_stop</span><span class="p">)]</span>
 
     <span class="n">utr3_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">start_site_nt</span><span class="p">))</span>
     <span class="n">utr3_length</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_length_nt</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span> <span class="o">-</span> <span class="n">stop_site_nt</span><span class="p">[</span><span class="n">last_aa_is_stop</span><span class="p">]</span>
@@ -711,9 +715,12 @@
 
         <span class="n">aa_seq</span> <span class="o">=</span> <span class="n">aa_frames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">start_locs</span><span class="p">,</span> <span class="n">end_locs</span> <span class="o">=</span> <span class="n">orf_start_stop_from_aa</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="n">max_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">first_stop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">aa_seq</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
         <span class="c1"># if returning all &gt; 100AA</span>
+        <span class="c1"># OR if potential upstream incomplete</span>
         <span class="n">orf_lengths</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="n">above_min_length</span> <span class="o">=</span> <span class="n">orf_lengths</span> <span class="o">&gt;=</span> <span class="n">min_orf_length</span>
+        <span class="n">above_min_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">orf_lengths</span> <span class="o">&gt;=</span> <span class="n">min_orf_length</span><span class="p">,</span> <span class="n">start_locs</span> <span class="o">&lt;</span> <span class="n">first_stop</span><span class="p">),</span> <span class="n">first_stop</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
         <span class="n">orf_lengths</span> <span class="o">=</span> <span class="n">orf_lengths</span><span class="p">[</span><span class="n">above_min_length</span><span class="p">]</span>
         <span class="n">max_start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">start_locs</span><span class="p">)[</span><span class="n">above_min_length</span><span class="p">]</span>
         <span class="n">max_end</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">end_locs</span><span class="p">)[</span><span class="n">above_min_length</span><span class="p">]</span>
@@ -855,7 +862,16 @@
 
     <span class="n">orf_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;orf_id&#39;</span><span class="p">,</span> <span class="s1">&#39;transcript_id&#39;</span><span class="p">,</span> <span class="s1">&#39;frame&#39;</span><span class="p">,</span> <span class="s1">&#39;strand&#39;</span><span class="p">,</span> <span class="s1">&#39;seq_length_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;start_site_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_site_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;utr3_length_nt&#39;</span><span class="p">,</span> <span class="s1">&#39;start_site_aa&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_site_aa&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_length_aa&#39;</span><span class="p">,</span> <span class="s1">&#39;first_aa_MET&#39;</span><span class="p">,</span> <span class="s1">&#39;final_aa_stop&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_class&#39;</span><span class="p">]</span>
 
-    <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="c1">#orf_df.to_csv(file_out, index=False, sep=&#39;\t&#39;)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_out</span><span class="p">):</span>
+        <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">orf_df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Columns do not match!! ORF data has &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">orf_df</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; columns. Output txt file has &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; columns.&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">orf_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Columns and column order of ORF data and txt file do not match!!&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">write_orf_fasta</span><span class="p">(</span><span class="n">orf_df</span><span class="p">,</span> <span class="n">file_out</span><span class="p">):</span>
@@ -870,10 +886,35 @@
 <span class="sd">        path to file to write fasta sequences</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># check if file exists</span>
-    <span class="c1">#</span>
 
-    <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
+    <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">batch_iterator</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns lists of length batch_size.</span>
+
+<span class="sd">    This can be used on any iterator, for example to batch up</span>
+<span class="sd">    SeqRecord objects from Bio.SeqIO.parse(...), or to batch</span>
+<span class="sd">    Alignment objects from Bio.AlignIO.parse(...), or simply</span>
+<span class="sd">    lines from a file handle.</span>
+
+<span class="sd">    This is a generator function, and it returns lists of the</span>
+<span class="sd">    entries from the supplied iterator.  Each list will have</span>
+<span class="sd">    batch_size entries, although the final list may be shorter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entry</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Make sure we loop once</span>
+    <span class="k">while</span> <span class="n">entry</span><span class="p">:</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">batch_size</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># End of file</span>
+                <span class="k">break</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">batch</span>
 </pre></div>
 
            </div>
