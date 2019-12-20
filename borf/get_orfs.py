@@ -287,6 +287,7 @@ def orf_start_stop_from_aa(aa_seq, *, max_only=True):
         end_locs = []
 
         M_locations = [m.span()[0] for m in re.finditer('M', aa_seq)]
+        M_locations.insert(0,0) # add 0 to be the first location (i.e. upstream incomplete transcripts)
         last_end = -1
         for m in M_locations:
             if m > last_end-1:
