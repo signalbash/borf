@@ -43,7 +43,7 @@ def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
     if all_orfs is False:
 
         # find the longest ORF in each frame
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames)
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop = find_longest_orfs(aa_frames, min_upstream_length = min_upstream_length)
 
         # check for upstream ORF?
         # get all sequence upstream of the start (M), and reverse it to find
@@ -109,7 +109,7 @@ def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
         sequence_df['seq_index'] = range(len(aa_frames))
 
         # find all ORFs longer than min_orf_length
-        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_frames, min_orf_length=min_orf_length)
+        orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop, matched_index = find_all_orfs(aa_frames, min_orf_length=min_orf_length, min_upstream_length = min_upstream_length)
 
         # check for upstream ORF?
         # get all sequence upstream of the start (M), and reverse it to
@@ -220,14 +220,14 @@ def translate_all_frames(sequences, both_strands=False):
     return ids, aa_seq_by_frame, frame, strand, seq_length_nt, seq_length
 
 
-def find_longest_orfs(aa_frames):
+def find_longest_orfs(aa_frames, min_upstream_length=50):
     start_sites = []
     stop_sites = []
     orf_sequence = []
 
     for aa_seq in aa_frames:
 
-        max_start, max_end = orf_start_stop_from_aa(aa_seq)
+        max_start, max_end = orf_start_stop_from_aa(aa_seq, min_upstream_length = min_upstream_length)
         # if returning all > 100AA
 
         start_sites.append(max_start)
@@ -252,7 +252,7 @@ def find_longest_orfs(aa_frames):
     return orf_sequence, start_sites, stop_sites, orf_length, last_aa_is_stop
 
 
-def orf_start_stop_from_aa(aa_seq, *, max_only=True):
+def orf_start_stop_from_aa(aa_seq, *, max_only=True, min_upstream_length=50):
     """
     Find locations of the start (M) and stop (*) codons that produce the
     longest ORF
@@ -287,7 +287,8 @@ def orf_start_stop_from_aa(aa_seq, *, max_only=True):
         end_locs = []
 
         M_locations = [m.span()[0] for m in re.finditer('M', aa_seq)]
-        M_locations.insert(0,0) # add 0 to be the first location (i.e. upstream incomplete transcripts)
+        if min(M_locations) > min_upstream_length:
+            M_locations.insert(0,0) # add 0 to be the first location (i.e. upstream incomplete transcripts)
         last_end = -1
         for m in M_locations:
             if m > last_end-1:
@@ -551,7 +552,7 @@ def check_first_aa(orf_sequence, start_codon='M'):
     return first_MET
 
 
-def find_all_orfs(aa_frames, min_orf_length):
+def find_all_orfs(aa_frames, min_orf_length, min_upstream_length=50):
     matched_index = []
     start_sites = []
     stop_sites = []
@@ -560,7 +561,7 @@ def find_all_orfs(aa_frames, min_orf_length):
     for i in range(len(aa_frames)):
 
         aa_seq = aa_frames[i]
-        start_locs, end_locs = orf_start_stop_from_aa(aa_seq, max_only=False)
+        start_locs, end_locs = orf_start_stop_from_aa(aa_seq, max_only=False, min_upstream_length=min_upstream_length)
         first_stop = np.char.find(aa_seq, '*')
         # if returning all > 100AA
         # OR if potential upstream incomplete
