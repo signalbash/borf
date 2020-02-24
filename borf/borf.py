@@ -5,6 +5,7 @@
 import argparse
 import os
 import sys
+import re
 from Bio import SeqIO
 from .get_orfs import get_orfs, write_orf_fasta, write_orf_data, batch_iterator
 
@@ -70,13 +71,49 @@ def main():
 
     record_iter = SeqIO.parse(open(input_file), 'fasta')
 
+    strand_warning = False
     for i, batch in enumerate(batch_iterator(record_iter, batch_size)):
         all_sequences = []
         for record in batch:
             all_sequences.append(record.upper())
-        orf_data = get_orfs(all_sequences, both_strands=args.strand,
-                            min_orf_length=args.orf_length, all_orfs=args.all_orfs,
-                            min_upstream_length=args.upstream_incomplete_length)
+
+
+        if i == 0:
+            # check strandedness
+
+            orf_data = get_orfs(all_sequences, both_strands=True,
+                                min_orf_length=args.orf_length, all_orfs=True,
+                                min_upstream_length=args.upstream_incomplete_length)
+
+            orf_data_strand_bias = orf_data.sort_values(by='orf_length', ascending = False)
+            orf_data_strand_bias = orf_data_strand_bias.drop_duplicates('id', keep='first')
+
+
+            pos_neg_bias = orf_data_strand_bias['strand'][orf_data_strand_bias['orf_class'] == "complete"].value_counts()
+            positive_strand_bias = pos_neg_bias[0] / (pos_neg_bias[0]+pos_neg_bias[1])
+            if positive_strand_bias > 0.7 and args.strand == True:
+                #data is likely from a stranded assembly.
+                print("Are you sure your input .fasta file isn't stranded?")
+                print(str(positive_strand_bias*100)+ "% of transcripts have the longest ORF on the + strand")
+                strand_warning = True
+
+            if positive_strand_bias <= 0.7 and args.strand == False:
+                print("Are you sure your input .fasta file is stranded?")
+                print(str(positive_strand_bias*100)+ "% of transcripts have the longest ORF on the + strand")
+                strand_warning = True
+
+            if args.strand == False:
+                orf_data = orf_data[orf_data['strand'] == '+']
+            if args.all_orfs == False:
+                idx = orf_data.groupby(['id'])['orf_length'].transform(max) == orf_data['orf_length']
+                orf_data = orf_data[idx]
+                orf_data['isoform_number'] = 1
+                orf_data['fasta_id'] = [re.sub("[.]orf[0-9]*",".orf1", x) for x in orf_data['fasta_id']]
+
+        else:
+            orf_data = get_orfs(all_sequences, both_strands=args.strand,
+                                min_orf_length=args.orf_length, all_orfs=args.all_orfs,
+                                min_upstream_length=args.upstream_incomplete_length)
 
         write_orf_fasta(orf_data, output_path_pep)
         write_orf_data(orf_data, output_path_txt)
@@ -87,3 +124,6 @@ def main():
 
     print("Done with borf.")
     print("Results in " + output_path_pep + " and " + output_path_txt)
+
+    if strand_warning == True:
+        print("This data caused a warning based on strandedness. Please check the top of the log for details and rerun with appropriate flags if neccessary.")
