@@ -20,6 +20,7 @@ def main():
     parser.add_argument('-a', '--all_orfs', action='store_true', help='Return all ORFs for each sequence longer than the cutoff')
     parser.add_argument('-l', '--orf_length', type=int, default=100, help='Minimum ORF length (AA). (default: %(default)d)')
     parser.add_argument('-u', '--upstream_incomplete_length', type=int, default=50, help='Minimum length (AA) of uninterupted sequence upstream of ORF to be included for incomplete_5prime transcripts (default: %(default)d)')
+    parser.add_argument('-c', '--genetic_code', type=int, default=1, help='Genetic code (int: 1-14) to use for translation (default: %(default)d). See https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi for list')
     parser.add_argument('-b', '--batch_size', type=int, default=10000, help='Number of fasta records to read in in each batch')
     parser.add_argument('-f', '--force_overwrite', action='store_true', help='Force overwriting of output files?')
 
@@ -83,7 +84,8 @@ def main():
 
             orf_data = get_orfs(all_sequences, both_strands=True,
                                 min_orf_length=args.orf_length, all_orfs=True,
-                                min_upstream_length=args.upstream_incomplete_length)
+                                min_upstream_length=args.upstream_incomplete_length,
+                                genetic_code=args.genetic_code)
 
             orf_data_strand_bias = orf_data.sort_values(by='orf_length', ascending = False)
             orf_data_strand_bias = orf_data_strand_bias.drop_duplicates('id', keep='first')
@@ -113,7 +115,8 @@ def main():
         else:
             orf_data = get_orfs(all_sequences, both_strands=args.strand,
                                 min_orf_length=args.orf_length, all_orfs=args.all_orfs,
-                                min_upstream_length=args.upstream_incomplete_length)
+                                min_upstream_length=args.upstream_incomplete_length,
+                                genetic_code=args.genetic_code)
 
         write_orf_fasta(orf_data, output_path_pep)
         write_orf_data(orf_data, output_path_txt)

@@ -9,7 +9,7 @@ import os
 
 
 def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
-             all_orfs=False, min_upstream_length=50):
+             all_orfs=False, min_upstream_length=50,genetic_code=1):
     """
     Produce a pandas DataFrame of predicted ORFs from a fasta file.
 
@@ -38,7 +38,7 @@ def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
     """
     # all_sequences = read_fasta(fasta_file)
     # create all frame translations of nt sequence
-    ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands)
+    ids, aa_frames, frame, strand, seq_length_nt, seq_length = translate_all_frames(all_sequences, both_strands=both_strands, genetic_code=genetic_code)
 
     if all_orfs is False:
 
@@ -157,7 +157,7 @@ def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
     return orf_df
 
 
-def translate_all_frames(sequences, both_strands=False):
+def translate_all_frames(sequences, both_strands=False, genetic_code=1):
 
     """
     translate nt sequences into all 3 frames
@@ -191,14 +191,14 @@ def translate_all_frames(sequences, both_strands=False):
 
             for reading_frame in range(3):
 
-                aa_seq_by_frame.append(str(skbio.DNA(str(seq_string.seq[reading_frame:])).translate()))
+                aa_seq_by_frame.append(str(skbio.DNA(str(seq_string.seq[reading_frame:])).translate(genetic_code)))
                 frame.append(reading_frame)
                 seq_length_nt.append(len(str(seq_string.seq)))
                 ids.append(seq_string.id)
 
                 if both_strands is True:
                     # translate reverse compliment
-                    aa_seq_by_frame.append(str(skbio.DNA(str(skbio.DNA(str(seq_string.seq)).complement(reverse=True))[reading_frame:]).translate()))
+                    aa_seq_by_frame.append(str(skbio.DNA(str(skbio.DNA(str(seq_string.seq)).complement(reverse=True))[reading_frame:]).translate(genetic_code)))
                     frame.append(reading_frame)
                     seq_length_nt.append(len(str(seq_string.seq)))
                     ids.append(seq_string.id)
