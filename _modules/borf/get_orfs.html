@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>borf.get_orfs &mdash; borf 1.1.post11+g73439b3 documentation</title>
+  <title>borf.get_orfs &mdash; borf 1.1.post14+g22ab4de documentation</title>
   
 
   
@@ -27,7 +27,6 @@
         <script src="../../_static/language_data.js"></script>
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
-        <script >var copybuttonSkipText = '>>> ';</script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -62,7 +61,7 @@
             
             
               <div class="version">
-                1.1.post11+g73439b3
+                1.1.post14+g22ab4de
               </div>
             
           
@@ -165,7 +164,7 @@
 
 
 <div class="viewcode-block" id="get_orfs"><a class="viewcode-back" href="../../usage.html#borf.get_orfs.get_orfs">[docs]</a><span class="k">def</span> <span class="nf">get_orfs</span><span class="p">(</span><span class="n">all_sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">min_orf_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-             <span class="n">all_orfs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">min_upstream_length</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+             <span class="n">all_orfs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">min_upstream_length</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">genetic_code</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Produce a pandas DataFrame of predicted ORFs from a fasta file.</span>
 
@@ -194,7 +193,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># all_sequences = read_fasta(fasta_file)</span>
     <span class="c1"># create all frame translations of nt sequence</span>
-    <span class="n">ids</span><span class="p">,</span> <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">seq_length</span> <span class="o">=</span> <span class="n">translate_all_frames</span><span class="p">(</span><span class="n">all_sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="n">both_strands</span><span class="p">)</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">aa_frames</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">seq_length_nt</span><span class="p">,</span> <span class="n">seq_length</span> <span class="o">=</span> <span class="n">translate_all_frames</span><span class="p">(</span><span class="n">all_sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="n">both_strands</span><span class="p">,</span> <span class="n">genetic_code</span><span class="o">=</span><span class="n">genetic_code</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">all_orfs</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
 
@@ -313,7 +312,7 @@
     <span class="k">return</span> <span class="n">orf_df</span></div>
 
 
-<span class="k">def</span> <span class="nf">translate_all_frames</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">translate_all_frames</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">both_strands</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">genetic_code</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    translate nt sequences into all 3 frames</span>
@@ -337,6 +336,7 @@
     <span class="n">frame</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">seq_length_nt</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">skipped_counter</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">seq_string</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
 
         <span class="n">nucleotide_seq</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">)</span>
@@ -347,20 +347,21 @@
 
             <span class="k">for</span> <span class="n">reading_frame</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
 
-                <span class="n">aa_seq_by_frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="n">reading_frame</span><span class="p">:]))</span><span class="o">.</span><span class="n">translate</span><span class="p">()))</span>
+                <span class="n">aa_seq_by_frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="n">reading_frame</span><span class="p">:]))</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">genetic_code</span><span class="p">)))</span>
                 <span class="n">frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reading_frame</span><span class="p">)</span>
                 <span class="n">seq_length_nt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">)))</span>
                 <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">both_strands</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
                     <span class="c1"># translate reverse compliment</span>
-                    <span class="n">aa_seq_by_frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">))</span><span class="o">.</span><span class="n">complement</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">))[</span><span class="n">reading_frame</span><span class="p">:])</span><span class="o">.</span><span class="n">translate</span><span class="p">()))</span>
+                    <span class="n">aa_seq_by_frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">skbio</span><span class="o">.</span><span class="n">DNA</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">))</span><span class="o">.</span><span class="n">complement</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">))[</span><span class="n">reading_frame</span><span class="p">:])</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">genetic_code</span><span class="p">)))</span>
                     <span class="n">frame</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reading_frame</span><span class="p">)</span>
                     <span class="n">seq_length_nt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">seq</span><span class="p">)))</span>
                     <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skipping &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_string</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;. Found &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">non_ATGC</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; non-ACGT characters.&quot;</span><span class="p">)</span>
+            <span class="n">skipped_counter</span> <span class="o">=</span> <span class="n">skipped_counter</span> <span class="o">+</span> <span class="mi">1</span>
 
     <span class="n">seq_length_nt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seq_length_nt</span><span class="p">)</span>
     <span class="n">aa_seq_by_frame</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">aa_seq_by_frame</span><span class="p">)</span>
@@ -368,7 +369,7 @@
     <span class="k">if</span> <span class="n">both_strands</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">strand</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="s1">&#39;+&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aa_seq_by_frame</span><span class="p">))])</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">strand</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">strand</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span><span class="o">-</span><span class="n">skipped_counter</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="n">seq_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">aa_seq_by_frame</span><span class="p">])</span>
 
