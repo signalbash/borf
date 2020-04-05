@@ -181,6 +181,7 @@ def translate_all_frames(sequences, both_strands=False, genetic_code=1):
     frame = []
     seq_length_nt = []
     ids = []
+    skipped_counter = 0
     for seq_string in sequences:
 
         nucleotide_seq = str(seq_string.seq)
@@ -205,6 +206,7 @@ def translate_all_frames(sequences, both_strands=False, genetic_code=1):
 
         else:
             print("Skipping " + str(seq_string.id) + ". Found " + str(non_ATGC) + " non-ACGT characters.")
+            skipped_counter = skipped_counter + 1
 
     seq_length_nt = np.array(seq_length_nt)
     aa_seq_by_frame = np.array(aa_seq_by_frame)
@@ -212,7 +214,7 @@ def translate_all_frames(sequences, both_strands=False, genetic_code=1):
     if both_strands is False:
         strand = np.array([s for s in '+' for i in range(len(aa_seq_by_frame))])
     else:
-        strand = np.tile(np.array(['+', '-']), len(sequences)*3)
+        strand = np.tile(np.array(['+', '-']), (len(sequences)-skipped_counter)*3)
 
     seq_length = np.array([len(o) for o in aa_seq_by_frame])
 
