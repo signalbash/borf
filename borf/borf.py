@@ -90,19 +90,19 @@ def main():
             orf_data_strand_bias = orf_data.sort_values(by='orf_length', ascending = False)
             orf_data_strand_bias = orf_data_strand_bias.drop_duplicates('id', keep='first')
 
+            if len(orf_data_strand_bias) >= 10:
+                pos_neg_bias = orf_data_strand_bias['strand'][orf_data_strand_bias['orf_class'] == "complete"].value_counts()
+                positive_strand_bias = pos_neg_bias[0] / (pos_neg_bias[0]+pos_neg_bias[1])
+                if positive_strand_bias > 0.7 and args.strand == True:
+                    #data is likely from a stranded assembly.
+                    print("Are you sure your input .fasta file isn't stranded?")
+                    print(str(positive_strand_bias*100)+ "% of transcripts have the longest ORF on the + strand")
+                    strand_warning = True
 
-            pos_neg_bias = orf_data_strand_bias['strand'][orf_data_strand_bias['orf_class'] == "complete"].value_counts()
-            positive_strand_bias = pos_neg_bias[0] / (pos_neg_bias[0]+pos_neg_bias[1])
-            if positive_strand_bias > 0.7 and args.strand == True:
-                #data is likely from a stranded assembly.
-                print("Are you sure your input .fasta file isn't stranded?")
-                print(str(positive_strand_bias*100)+ "% of transcripts have the longest ORF on the + strand")
-                strand_warning = True
-
-            if positive_strand_bias <= 0.7 and args.strand == False:
-                print("Are you sure your input .fasta file is stranded?")
-                print(str(positive_strand_bias*100)+ "% of transcripts have the longest ORF on the + strand")
-                strand_warning = True
+                if positive_strand_bias <= 0.7 and args.strand == False:
+                    print("Are you sure your input .fasta file is stranded?")
+                    print(str(positive_strand_bias*100)+ "% of transcripts have the longest ORF on the + strand")
+                    strand_warning = True
 
             if args.strand == False:
                 orf_data = orf_data[orf_data['strand'] == '+']
