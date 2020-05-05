@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>borf.get_orfs &mdash; borf 1.1.post14+g22ab4de documentation</title>
+  <title>borf.get_orfs &mdash; borf 1.1.post15+g929850d documentation</title>
   
 
   
@@ -61,7 +61,7 @@
             
             
               <div class="version">
-                1.1.post14+g22ab4de
+                1.1.post15+g929850d
               </div>
             
           
@@ -307,7 +307,7 @@
     <span class="c1"># add ORF classification</span>
     <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;orf_class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_orf_classification</span><span class="p">(</span><span class="n">orf_df</span><span class="p">)</span>
     <span class="c1"># Generate ids for writing to fasta</span>
-    <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&gt;&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">id</span> <span class="o">+</span> <span class="s1">&#39;.orf&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">isoform_number</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">orf_class</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">start_site_nt</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">stop_site_nt</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; strand:&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">strand</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">orf_df</span><span class="o">.</span><span class="n">id</span> <span class="o">+</span> <span class="s1">&#39;.orf&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">isoform_number</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">orf_class</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">start_site_nt</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">stop_site_nt</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; strand:&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">strand</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">orf_df</span></div>
 
@@ -890,7 +890,7 @@
 <span class="sd">        path to file to write fasta sequences</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-
+    <span class="n">orf_df</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&gt;&#39;</span> <span class="o">+</span> <span class="n">orf_df</span><span class="o">.</span><span class="n">fasta_id</span>
     <span class="n">orf_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_out</span><span class="p">,</span> <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;fasta_id&#39;</span><span class="p">,</span> <span class="s1">&#39;orf_sequence&#39;</span><span class="p">])</span>
 
 <span class="k">def</span> <span class="nf">batch_iterator</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
