@@ -91,8 +91,11 @@ def main():
             orf_data_strand_bias = orf_data_strand_bias.drop_duplicates('id', keep='first')
 
             if len(orf_data_strand_bias) >= 10:
-                pos_neg_bias = orf_data_strand_bias['strand'][orf_data_strand_bias['orf_class'] == "complete"].value_counts()
-                positive_strand_bias = pos_neg_bias[0] / (pos_neg_bias[0]+pos_neg_bias[1])
+
+                pos_bias = (orf_data_strand_bias['strand'][orf_data_strand_bias['orf_class'] == "complete"] == "+").sum()
+                neg_bias = (orf_data_strand_bias['strand'][orf_data_strand_bias['orf_class'] == "complete"] == "-").sum()
+                positive_strand_bias = pos_bias / (pos_bias+neg_bias)
+
                 if positive_strand_bias > 0.7 and args.strand == True:
                     #data is likely from a stranded assembly.
                     print("Are you sure your input .fasta file isn't stranded?")
@@ -118,8 +121,8 @@ def main():
                                 min_upstream_length=args.upstream_incomplete_length,
                                 genetic_code=args.genetic_code)
 
-        write_orf_fasta(orf_data, output_path_pep)
         write_orf_data(orf_data, output_path_txt)
+        write_orf_fasta(orf_data, output_path_pep)
 
         start_seq_n = (i*batch_size) + 1
         end_seq_n = min(start_seq_n + (batch_size - 1), n_seqs)

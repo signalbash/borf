@@ -152,7 +152,7 @@ def get_orfs(all_sequences, both_strands=False, min_orf_length=100,
     # add ORF classification
     orf_df['orf_class'] = add_orf_classification(orf_df)
     # Generate ids for writing to fasta
-    orf_df['fasta_id'] = ('>' + orf_df.id + '.orf' + orf_df.isoform_number.map(str) + ' ' + orf_df.orf_class + ':' + orf_df.start_site_nt.map(str) + '-' + orf_df.stop_site_nt.map(str) + ' strand:' + orf_df.strand.map(str))
+    orf_df['fasta_id'] = (orf_df.id + '.orf' + orf_df.isoform_number.map(str) + ' ' + orf_df.orf_class + ':' + orf_df.start_site_nt.map(str) + '-' + orf_df.stop_site_nt.map(str) + ' strand:' + orf_df.strand.map(str))
 
     return orf_df
 
@@ -735,7 +735,7 @@ def write_orf_fasta(orf_df, file_out):
         path to file to write fasta sequences
 
     """
-
+    orf_df['fasta_id'] = '>' + orf_df.fasta_id
     orf_df.to_csv(file_out, mode = 'a', index=False, sep='\n', header=False, columns=['fasta_id', 'orf_sequence'])
 
 def batch_iterator(iterator, batch_size):
