@@ -7,7 +7,8 @@ import os
 import sys
 import re
 from Bio import SeqIO
-from .get_orfs import get_orfs, write_orf_fasta, write_orf_data, batch_iterator
+import pandas as pd
+from .get_orfs import get_orfs, write_orf_fasta, write_orf_data, write_orf_cds, batch_iterator
 
 
 def main():
@@ -35,14 +36,23 @@ def main():
 
     output_path_pep = output_path + '.pep'
     output_path_txt = output_path + '.txt'
+    output_path_cds = output_path + '.cds'
 
     # check if files exist already
-    if os.path.isfile(output_path_pep) or os.path.isfile(output_path_txt):
+    if os.path.isfile(output_path_pep) or os.path.isfile(output_path_txt) or os.path.isfile(output_path_cds):
 
-        if os.path.isfile(output_path_pep) and os.path.isfile(output_path_txt):
+        if os.path.isfile(output_path_pep) and os.path.isfile(output_path_txt) and os.path.isfile(output_path_cds):
+             print(output_path_pep + ", " + output_path_txt + " and " + output_path_cds  + " already exist")
+        elif os.path.isfile(output_path_pep) and os.path.isfile(output_path_txt):
              print(output_path_pep + " and " + output_path_txt + " already exist")
+        elif os.path.isfile(output_path_pep) and os.path.isfile(output_path_cds):
+             print(output_path_pep + " and " + output_path_cds + " already exist")
+        elif os.path.isfile(output_path_cds) and os.path.isfile(output_path_txt):
+             print(output_path_txt + " and " + output_path_cds + " already exist")
         elif os.path.isfile(output_path_pep):
             print(output_path_pep + " already exists")
+        elif os.path.isfile(output_path_cds):
+            print(output_path_cds + " already exists")
         else:
             print(output_path_txt + " already exists")
 
@@ -56,12 +66,16 @@ def main():
                     os.remove(output_path_pep)
                 if os.path.isfile(output_path_txt):
                     os.remove(output_path_txt)
+                if os.path.isfile(output_path_cds):
+                    os.remove(output_path_cds)
         else:
             print('Overwriting files')
             if os.path.isfile(output_path_pep):
                 os.remove(output_path_pep)
             if os.path.isfile(output_path_txt):
                 os.remove(output_path_txt)
+            if os.path.isfile(output_path_cds):
+                os.remove(output_path_cds)
 
     # number of sequences
     n_seqs = 0
@@ -121,15 +135,29 @@ def main():
                                 min_upstream_length=args.upstream_incomplete_length,
                                 genetic_code=args.genetic_code)
 
+        # extract nt seqs at CDS
+        nucleotide_seq = []
+        nucleotide_id = []
+        for seq_string in all_sequences:
+            nucleotide_seq.append(str(seq_string.seq))
+            nucleotide_id.append(str(seq_string.id))
+        seq_df = pd.DataFrame(list(zip(nucleotide_id, nucleotide_seq)), columns=['id', 'nt_seq'])
+
+        # merge orfs with all_sequences 
+        orf_data = pd.merge(seq_df, orf_data,  on='id', how='right')
+        orf_data['cds_seq'] = orf_data.apply(lambda x: x['nt_seq'][(x['start_site_nt']-1):x['stop_site_nt']], axis=1)
+
+
         write_orf_data(orf_data, output_path_txt)
         write_orf_fasta(orf_data, output_path_pep)
+        write_orf_cds(orf_data, output_path_cds)
 
         start_seq_n = (i*batch_size) + 1
         end_seq_n = min(start_seq_n + (batch_size - 1), n_seqs)
         print("Processed sequences " + str(start_seq_n) + " to " + str(end_seq_n) + " of " + str(n_seqs))
 
     print("Done with borf.")
-    print("Results in " + output_path_pep + " and " + output_path_txt)
+    print("Results in " + output_path_pep + " and " + output_path_txt + " and " + output_path_cds)
 
     if strand_warning == True:
         print("This data caused a warning based on strandedness. Please check the top of the log for details and rerun with appropriate flags if neccessary.")
