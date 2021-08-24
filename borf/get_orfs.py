@@ -738,6 +738,21 @@ def write_orf_fasta(orf_df, file_out):
     orf_df['fasta_id'] = '>' + orf_df.fasta_id
     orf_df.to_csv(file_out, mode = 'a', index=False, sep='\n', header=False, columns=['fasta_id', 'orf_sequence'])
 
+def write_orf_cds(orf_df, file_out):
+    """
+    Write ORF CDS sequences to a fasta file.
+
+    Parameters
+    ----------
+    orf_df : DataFrame
+        orf_df DataFrame
+    file_out : str
+        path to file to write fasta sequences
+
+    """
+    orf_df['fasta_id'] = '>' + orf_df.fasta_id
+    orf_df.to_csv(file_out, mode = 'a', index=False, sep='\n', header=False, columns=['fasta_id', 'cds_seq'])
+
 def batch_iterator(iterator, batch_size):
     """Returns lists of length batch_size.
 
